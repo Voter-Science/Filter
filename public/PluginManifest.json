@@ -1,10 +1,10 @@
 ﻿{
     // ID must be unique on the gallery
     "Id": "Filter",
-    "Name": "Basic filtering",
+    "Name": "Filtering",
     "Author" :  "Voter-Science",
-    "Website" :  "https://github.com/Voter-Science/TRC-API-Samples",
-    "Description": "Provide Basic filtering on a sheet",        
+    "Website" :  "https://github.com/Voter-Science/Filter",
+    "Description": "Provide support for querying a sheet with the filter expressions and partitioning it into child sheets based on a filter.",        
     "Version": "1.0.0", // User SemVer
-    "Tags": [ "filter"  ]
+    "Tags": [ "filter", "partition"  ]
 }
