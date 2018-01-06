@@ -65,35 +65,62 @@
     </span>
     <div id="_mainbody" style="display:none">
         <h1>Query and Partition with Filter Expressions</h1>
-        <p>This plugin lets you run queries against your data.</p>
-        <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers. (You must run the query first to enable saving)</p>
 
-        <p>See
-            <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
-
-            <p>Set filter:</p>
-        <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
-
-        <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
-
-        <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
-        <button id ="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
-
-        <h3>Existing columns:</h3>
         <table>
-                <tr>
-                    <td>Total Rows:</td>
-                    <td>
-                        <div id="RowCount"></div>
-                    </td>
-                </tr>
-            </table>
-        <p>These are existing columns you can use in the query:</p>
-        <div id="contents"></div>
+            <tr>
+                <td>
+                    <p>This plugin lets you run queries against your data.</p>
+                    <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers.
+                        (You must run the query first to enable saving)</p>
 
-        <h3>Existing Filters:</h3>
-        <p>These are existing filters (aka 'child sheets') for this sheet.</p>
-        <div id="existingfilters"></div>
+                    <p>See
+                        <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
+
+                    <p>Set filter:</p>
+                    <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
+
+                    <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
+
+                    <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
+                    <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
+
+                    <h3>Existing columns:</h3>
+                    <table>
+                        <tr>
+                            <td>Total Rows:</td>
+                            <td>
+                                <div id="RowCount"></div>
+                            </td>
+                        </tr>
+                    </table>
+                    <p>These are existing columns you can use in the query:</p>
+                    <div id="contents"></div>
+
+                    <h3>Existing Filters:</h3>
+                    <p>These are existing filters (aka 'child sheets') for this sheet.</p>
+                    <div id="existingfilters"></div>
+
+                </td>
+                <td style="vertical-align: top;">
+                    <h3>Previous results </h3>
+                    <p>Here are the results from previous queries. Most recent is on top:</p>
+
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <td>Expression</td>
+                                <td>Result</td>
+                                <td></td>
+                            </tr>
+                        </thead>
+                        <tbody id="prevresults">
+
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </table>>
+
     </div>
 </body>
 
