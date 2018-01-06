@@ -17,7 +17,7 @@ import * as trcSheetEx from 'trc-sheet/sheetEx'
 
 import * as plugin from 'trc-web/plugin'
 import * as trchtml from 'trc-web/html'
-
+import {ColumnStats} from './columnStats'
 
 declare var $: any; // external definition for JQuery 
 
@@ -212,80 +212,5 @@ export class MyPlugin {
                 render.render();
             }).catch(showError);
         });
-    }
-}
-
-// https://stackoverflow.com/questions/3579486/sort-a-javascript-array-by-frequency-and-then-filter-repeats
-// Return array with duplicates removed and sorted by frequency. 
-function sortByFrequency(array : string[]) {
-    var frequency : any= {};
-
-    array.forEach(function(value) { frequency[value] = 0; });
-
-    var uniques = array.filter(function(value) {
-        return ++frequency[value] == 1;
-    });
-
-    var x = uniques.sort(function(a, b) {
-        return frequency[b] - frequency[a];
-    });
-
-    // append frequency 
-    for(var i in x) {
-        var val = x[i];
-        var freq = frequency[val];
-        x[i] = val +" (x" + freq +")";
-    }
-    return x;
-}
-
-class ColumnStats {
-    private _uniques: Array<string>;
-    private _numBlanks : number = 0;
-
-    public constructor(vals: string[]) {
-        
-        var nonBlank : string[] = [];
-        for(var i in vals)
-        {
-            var val = vals[i];
-            if (!val || val.length == 0) {
-                this._numBlanks++;
-            } else {
-                nonBlank.push(val);
-            }
-        }
-
-        this._uniques = sortByFrequency(nonBlank);
-    }
-
-    // Get a short summary string for the values in this column. 
-    public getSummaryString(totalSize: number): string {
-        var numBlank: number = this._numBlanks;
-        if (numBlank == totalSize) {
-            return "(empty)";
-        }
-        if (this._uniques.length == totalSize) {
-            // This is very likely a primary key
-            return "(all unique)";
-        }
-
-        var text = "";
-        var threshold = 8; // Only display discrete values for small numbers
-        if (this._uniques.length > threshold) {
-            text = this._uniques.length + " total unique values";
-        } else {
-            // values are already sorted by frequency. 
-            text = this._uniques.join();
-        }
-
-        if (numBlank > 0) {
-            text += " (" + numBlank + " blank)";
-        } else if (numBlank == 0 && this._uniques.length == 1) {
-            // This is the same value for every row in the cell
-            text += " (constant)";
-        }
-
-        return text;
     }
 }
