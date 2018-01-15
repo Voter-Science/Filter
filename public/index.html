@@ -2,10 +2,13 @@
 
 <link rel="stylesheet" type="text/css" href="trcgrid.css">
 <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-    crossorigin="anonymous">
+   crossorigin="anonymous">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/jQuery-QueryBuilder/dist/css/query-builder.default.min.css">
 
 <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
 <script src="bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jQuery-QueryBuilder/dist/js/query-builder.standalone.min.js"></script>
 <script>
     // plugin startup shim
     var _pluginModule = require('pluginmain');
@@ -15,7 +18,7 @@
 
     // Common error handler
     function showError(error) {
-        var msg = error.Message; // Commonly a user error. 
+        var msg = error.Message; // Commonly a user error.
         if (!msg) {
             msg = error;
         }
@@ -33,17 +36,18 @@
 
         _pluginModule.MyPlugin.BrowserEntryAsync(sheetRef, opts).then(
             function (plugin) {
-                // Success 
+                // Success
                 _plugin = plugin;
                 $("#_loadingmsg").hide();
                 $("#_mainbody").show(); // activate main controls
             }
         ).catch(function (error) {
-            // Error case. Display message and Keep main body hiden. 
+            // Error case. Display message and Keep main body hiden.
             $("#_loadingmsg").hide();
             showError(error);
         });
     }
+
 </script>
 <script src="https://trcanvasdata.blob.core.windows.net/code2/plugin.js"></script>
 
@@ -63,64 +67,96 @@
     <span id="_errorbtn" style="display:none">
         <button onclick="clearError()">Clear error</button>
     </span>
-    <div id="_mainbody" style="display:none">
-        <h1>Query and Partition with Filter Expressions</h1>
+    <div id="_mainbody" class="container" style="display:none">
 
-        <table>
-            <tr>
-                <td>
-                    <p>This plugin lets you run queries against your data.</p>
-                    <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers.
-                        (You must run the query first to enable saving)</p>
+        <ul  class="nav nav-pills nav-fill">
+            <li class="nav-item active">
+                <a class="nav-link" href="#queryBuilder" data-toggle="tab">Query builder</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#advance" data-toggle="tab">Advance</a>
+            </li>
+        </ul>
+        <div class="tab-content clearfix">
+            <div class="tab-pane active" id="queryBuilder">
+                <h1>QueryBuilter for Filter Expressions</h1>
+                <table>
+                    <tr>
+                        <td>
+                            <p>This plugin lets you run queries and filters against your data.</p>
+                            <div class="col-md-12 col-lg-10 col-lg-offset-1">
+                                <div id="options"></div>
+                                <div id="builder-basic"></div>
 
-                    <p>See
-                        <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
+                                <div class="btn-group">
+                                    <button class="btn btn-warning reset" data-target="basic">Reset</button>
+                                    <button class="btn btn-success set-json" data-target="basic">Set rules</button>
+                                    <button class="btn btn-primary parse-json" data-target="basic">Get rules</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="tab-pane" id="advance">
+                <h1>Query and Partition with Filter Expressions</h1>
 
-                    <p>Set filter:</p>
-                    <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
+                <table>
+                    <tr>
+                        <td>
+                            <p>This plugin lets you run queries against your data.</p>
+                            <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers.
+                                (You must run the query first to enable saving)</p>
 
-                    <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
+                            <p>See
+                                <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
 
-                    <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
-                    <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
+                            <p>Set filter:</p>
+                            <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
 
-                    <h3>Existing columns:</h3>
-                    <table>
-                        <tr>
-                            <td>Total Rows:</td>
-                            <td>
-                                <div id="RowCount"></div>
-                            </td>
-                        </tr>
-                    </table>
-                    <p>These are existing columns you can use in the query:</p>
-                    <div id="contents"></div>
+                            <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
 
-                    <h3>Existing Filters:</h3>
-                    <p>These are existing filters (aka 'child sheets') for this sheet.</p>
-                    <div id="existingfilters"></div>
+                            <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
+                            <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
 
-                </td>
-                <td style="vertical-align: top;">
-                    <h3>Previous results </h3>
-                    <p>Here are the results from previous queries. Most recent is on top:</p>
+                            <h3>Existing columns:</h3>
+                            <table>
+                                <tr>
+                                    <td>Total Rows:</td>
+                                    <td>
+                                        <div id="RowCount"></div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p>These are existing columns you can use in the query:</p>
+                            <div id="contents"></div>
 
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <td>Expression</td>
-                                <td>Result</td>
-                                <td></td>
-                            </tr>
-                        </thead>
-                        <tbody id="prevresults">
+                            <h3>Existing Filters:</h3>
+                            <p>These are existing filters (aka 'child sheets') for this sheet.</p>
+                            <div id="existingfilters"></div>
 
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-        </table>>
+                        </td>
+                        <td style="vertical-align: top;">
+                            <h3>Previous results </h3>
+                            <p>Here are the results from previous queries. Most recent is on top:</p>
 
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <td>Expression</td>
+                                        <td>Result</td>
+                                        <td></td>
+                                    </tr>
+                                </thead>
+                                <tbody id="prevresults">
+
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
     </div>
 </body>
 

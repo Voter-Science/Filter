@@ -2,9 +2,9 @@
 // Demonstrates:
 // - typescript
 // - using trc npm modules and browserify
-// - uses promises. 
-// - basic scaffolding for error reporting. 
-// This calls TRC APIs and binds to specific HTML elements from the page.  
+// - uses promises.
+// - basic scaffolding for error reporting.
+// This calls TRC APIs and binds to specific HTML elements from the page.
 
 import * as XC from 'trc-httpshim/xclient'
 import * as common from 'trc-httpshim/common'
@@ -20,7 +20,7 @@ import * as trchtml from 'trc-web/html'
 import { ColumnStats } from './columnStats'
 import { HashCount } from './hashcount'
 
-declare var $: any; // external definition for JQuery 
+declare var $: any; // external definition for JQuery
 
 // Provide easy error handle for reporting errors from promises.  Usage:
 //   p.catch(showError);
@@ -31,12 +31,14 @@ export class MyPlugin {
     private _sheet: trcSheet.SheetClient;
     private _pluginClient: plugin.PluginClient;
 
-    // Used to give each result a unique HTML id. 
+    // Used to give each result a unique HTML id.
     private _outputCounter: number = 0;
 
     // Map of ColumnName --> ColumnStats of unique values in this column
     private _columnStats: any;
     private _rowCount: number;
+
+    private rules_basic: any = {};
 
     public static BrowserEntryAsync(
         auth: plugin.IStart,
@@ -61,18 +63,19 @@ export class MyPlugin {
         });
     }
 
-    // Expose constructor directly for tests. They can pass in mock versions. 
+    // Expose constructor directly for tests. They can pass in mock versions.
     public constructor(p: plugin.PluginClient) {
         this._sheet = new trcSheet.SheetClient(p.HttpClient, p.SheetId);
     }
 
 
-    // Make initial network calls to setup the plugin. 
-    // Need this as a separate call from the ctor since ctors aren't async. 
+    // Make initial network calls to setup the plugin.
+    // Need this as a separate call from the ctor since ctors aren't async.
     private InitAsync(): Promise<void> {
         return this.getStats().then(() => {
             return this._sheet.getInfoAsync().then(info => {
                 this.updateInfo(info);
+                this.updateQbuilderInfo(info);
             });
         });
     }
@@ -106,6 +109,8 @@ export class MyPlugin {
         }
 
         var render = new trchtml.RenderSheet("contents", data);
+
+        $('#options').text(data['Column Names']);
         render.render();
     }
 
@@ -148,7 +153,7 @@ export class MyPlugin {
         });
     };
 
-    // Collect stats on sheets. Namely which columns, and possible values. 
+    // Collect stats on sheets. Namely which columns, and possible values.
     private getStats(): Promise<void> {
         var values: any = {};
 
@@ -170,36 +175,36 @@ export class MyPlugin {
             });
     }
 
-    // Demonstrate receiving UI handlers 
+    // Demonstrate receiving UI handlers
     public onClickRefresh(): void {
         clearError();
         var filter = $("#filter").val();
 
-        // Columns must exist. verify that Address,City exist before asking for them. 
+        // Columns must exist. verify that Address,City exist before asking for them.
         this._sheet.getSheetContentsAsync(filter, ["RecId", "Address", "City"]).then(contents => {
             // var count = contents["RecId"].length;
 
             var text = this.getResultString(contents);
             this.addResult(filter, text);
 
-            // Don't need to alert, it shows up in the result. 
+            // Don't need to alert, it shows up in the result.
             // alert("This query has " + count + " rows.");
 
             $("#btnSave").prop('disabled', false); // Can now save
         }).catch(showError);
     }
 
-    // Given query results, scan it and convert to a string. 
-    private getResultString(contents : trcSheetContents.ISheetContents) : string 
-    {        
+    // Given query results, scan it and convert to a string.
+    private getResultString(contents : trcSheetContents.ISheetContents) : string
+    {
         var count = contents["RecId"].length;
 
         var text = count + " rows";
 
-        // Check for households        
+        // Check for households
         var addrColumn = contents["Address"];
         var cityColumn = contents["City"];
-        if (addrColumn && cityColumn) 
+        if (addrColumn && cityColumn)
         {
             var uniqueAddrs = new HashCount();
             for(var i in addrColumn)
@@ -210,23 +215,23 @@ export class MyPlugin {
 
             var countAddrs = uniqueAddrs.getCount();
 
-            text +="; " + countAddrs + " households";           
+            text +="; " + countAddrs + " households";
         }
         return text;
     }
 
-    // Add the result to the html log. 
+    // Add the result to the html log.
     private addResult(filter: string, result: string): void {
         this._outputCounter++;
 
-        // Add to output log. 
+        // Add to output log.
         var root = $("#prevresults");
 
         var id = "result_" + this._outputCounter;
         var e1 = $("<tr id='" + id + "'>");
         var e2a = $("<td>").text(filter);
 
-        // If we have richer results, this could be a more complex html object. 
+        // If we have richer results, this could be a more complex html object.
         var e2b = $("<td>").text(result);
 
         var e2c = $("<td>");
@@ -239,14 +244,14 @@ export class MyPlugin {
         e1.append(e2b);
         e1.append(e2c);
 
-        // Show most recent results at top, but after the first <tr> that serves as header 
+        // Show most recent results at top, but after the first <tr> that serves as header
         //$('#prevresults thead:first').after(e1);
         $('#prevresults').prepend(e1);
         //root.prepend(e1);
     }
 
     public onChangeFilter(): void {
-        // Once we've edited the filter, must get the counts again in order to save it. 
+        // Once we've edited the filter, must get the counts again in order to save it.
         $("#btnSave").prop('disabled', true);
     }
 
@@ -263,4 +268,68 @@ export class MyPlugin {
         this._sheet.createChildSheetFromFilterAsync(newName, filter, shareSandbox)
             .then(() => this.getAndRenderChildrenAsync()).catch(showError);
     }
+
+    // Display sheet info on HTML page
+    public updateQbuilderInfo(info: trcSheet.ISheetInfoResult): void {
+        console.log(info.Columns);
+
+        //var data: trcSheetContents.ISheetContents = {};
+
+        var filters: object[] = [];
+
+
+        $('#builder-basic').queryBuilder({
+        //plugins: ['bt-tooltip-errors'],
+
+        filters: [{
+            id: 'name',
+            label: 'Name',
+            type: 'string'
+            }, {
+                id: 'category',
+                label: 'Category',
+                type: 'integer',
+                input: 'select',
+                values: {
+                1: 'Books',
+                2: 'Movies',
+                3: 'Music',
+                4: 'Tools',
+                5: 'Goodies',
+                6: 'Clothes'
+            },
+            operators: ['equal', 'not_equal', 'in', 'not_in', 'is_null', 'is_not_null']
+            }, {
+                id: 'in_stock',
+                label: 'In stock',
+                type: 'integer',
+                input: 'radio',
+                values: {
+                1: 'Yes',
+                0: 'No'
+            },
+            operators: ['equal']
+            }, {
+                id: 'price',
+                label: 'Price',
+                type: 'double',
+                validation: {
+                min: 0,
+                step: 0.01
+            }
+            }, {
+                id: 'id',
+                label: 'Identifier',
+                type: 'string',
+                placeholder: '____-____-____',
+                operators: ['equal', 'not_equal'],
+                validation: {
+                format: /^.{4}-.{4}-.{4}$/
+            }
+        }],
+
+        // rules: initilal_rules
+        });
+    }
+
 }
