@@ -271,65 +271,33 @@ export class MyPlugin {
 
     // Display sheet info on HTML page
     public updateQbuilderInfo(info: trcSheet.ISheetInfoResult): void {
-        console.log(info.Columns);
 
-        //var data: trcSheetContents.ISheetContents = {};
+        var optionFilter: any = [];
 
-        var filters: object[] = [];
+        for (var i in info.Columns) {
 
+            var child = info.Columns[i];
+            var id = child.Name;
+            var label = child.DisplayName;
+            //var type = child.Type;
+
+            var type = 'string';
+
+            var fields : any = {
+                'id' : id,
+                'label' : label,
+                'type' : type
+            }
+            optionFilter.push(fields);
+
+        }
 
         $('#builder-basic').queryBuilder({
-        //plugins: ['bt-tooltip-errors'],
+            //plugins: ['bt-tooltip-errors'],
 
-        filters: [{
-            id: 'name',
-            label: 'Name',
-            type: 'string'
-            }, {
-                id: 'category',
-                label: 'Category',
-                type: 'integer',
-                input: 'select',
-                values: {
-                1: 'Books',
-                2: 'Movies',
-                3: 'Music',
-                4: 'Tools',
-                5: 'Goodies',
-                6: 'Clothes'
-            },
-            operators: ['equal', 'not_equal', 'in', 'not_in', 'is_null', 'is_not_null']
-            }, {
-                id: 'in_stock',
-                label: 'In stock',
-                type: 'integer',
-                input: 'radio',
-                values: {
-                1: 'Yes',
-                0: 'No'
-            },
-            operators: ['equal']
-            }, {
-                id: 'price',
-                label: 'Price',
-                type: 'double',
-                validation: {
-                min: 0,
-                step: 0.01
-            }
-            }, {
-                id: 'id',
-                label: 'Identifier',
-                type: 'string',
-                placeholder: '____-____-____',
-                operators: ['equal', 'not_equal'],
-                validation: {
-                format: /^.{4}-.{4}-.{4}$/
-            }
-        }],
-
-        // rules: initilal_rules
+            filters: optionFilter
         });
     }
+
 
 }
