@@ -14,6 +14,7 @@ import * as core from 'trc-core/core'
 import * as trcSheet from 'trc-sheet/sheet'
 import * as trcSheetContents from 'trc-sheet/sheetContents'
 import * as trcSheetEx from 'trc-sheet/sheetEx'
+import * as gps from 'trc-web/gps'
 
 import * as plugin from 'trc-web/plugin'
 import * as trchtml from 'trc-web/html'
@@ -30,6 +31,7 @@ declare var showError: (error: any) => void; // error handler defined in index.h
 export class MyPlugin {
     private _sheet: trcSheet.SheetClient;
     private _pluginClient: plugin.PluginClient;
+    private _gps : common.IGeoPointProvider;
 
     // Used to give each result a unique HTML id.
     private _outputCounter: number = 0;
@@ -38,7 +40,7 @@ export class MyPlugin {
     private _columnStats: any;
     private _rowCount: number;
 
-    private rules_basic: any = {};
+    private _optionFilter: any = [];
 
     public static BrowserEntryAsync(
         auth: plugin.IStart,
@@ -110,7 +112,6 @@ export class MyPlugin {
 
         var render = new trchtml.RenderSheet("contents", data);
 
-        $('#options').text(data['Column Names']);
         render.render();
     }
 
@@ -272,8 +273,6 @@ export class MyPlugin {
     // Display sheet info on HTML page
     public updateQbuilderInfo(info: trcSheet.ISheetInfoResult): void {
 
-        var optionFilter: any = [];
-
         for (var i in info.Columns) {
 
             var child = info.Columns[i];
@@ -288,16 +287,46 @@ export class MyPlugin {
                 'label' : label,
                 'type' : type
             }
-            optionFilter.push(fields);
+            this._optionFilter.push(fields);
 
         }
 
         $('#builder-basic').queryBuilder({
             //plugins: ['bt-tooltip-errors'],
 
-            filters: optionFilter
+            filters: this._optionFilter
         });
     }
 
+    public onResetRule(): void {
+        // Reset filter rules
+        $("#builder-basic").queryBuilder('reset');
+    }
 
+    public onGetRule(): void {
+        // Reset filter rules
+        var result = $('#builder-basic').queryBuilder('getRules');
+
+        if (!$.isEmptyObject(result)) {
+            alert(JSON.stringify(result, null, 2));
+        }
+    }
+
+    // downloading all contents and rendering them to HTML can take some time.
+    public onGetSheetContents(): void {
+        //trchtml.Loading("contents");
+        //$("#contents").empty();
+        $("#qb-contents").text("Loading...");
+
+        var queryFilter = $('#builder-basic').queryBuilder('getRules');
+
+        trcSheetEx.SheetEx.InitAsync(this._sheet, this._gps).then((sheetEx)=>
+        {
+            return this._sheet.getSheetContentsAsync(queryFilter).then((contents) => {
+                var render = new trchtml.SheetControl("qb-contents", sheetEx);
+                // could set other options on render() here
+                render.render();
+            }).catch(showError);
+        });
+    }
 }
