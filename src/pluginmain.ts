@@ -309,6 +309,9 @@ export class MyPlugin {
 
         if (!$.isEmptyObject(result)) {
             alert(JSON.stringify(result, null, 2));
+
+            var expr = convertToExpressionString(result);
+            alert(expr);
         }
     }
 
@@ -329,4 +332,126 @@ export class MyPlugin {
             }).catch(showError);
         });
     }
+}
+
+
+function  convertConditionToExpressionString(asQuery : IQueryCondition) : string
+{
+    var opStr : string;
+    if ( asQuery.condition == "AND") 
+    {
+        opStr = " && ";
+    }  else if (asQuery.condition == "OR")
+    {
+        opStr = " || ";
+    } else {
+        throw "Unsupported operator: " + asQuery.condition;
+    }
+
+    var expressionStr : string = "(";
+    for(var i in asQuery.rules)
+    {
+        if (expressionStr.length > 1) 
+        {
+            expressionStr += opStr;
+        }
+        expressionStr += convertToExpressionString(asQuery.rules[i]);    
+    }
+    expressionStr += ")";
+
+    return expressionStr;
+}
+
+function  convertRuleToExpressionString(asRule : IQueryRule) : string
+{
+    // Unary operators don't have a value 
+    // "is_empty", "is_not_empty"
+    if (asRule.operator == JQBOperator.IsEmpty)
+    {
+        return "IsBlank(" + asRule.field + ")";
+    } 
+    if (asRule.operator == JQBOperator.IsNotEmpty)
+    {
+        return "(!IsBlank(" + asRule.field + "))";
+    } 
+
+    // We have a binary operator. 
+
+    // Add value 
+    var valueStr : string;
+    var isString: boolean = false;
+    var isNumber : boolean = false;
+    if (asRule.type == JQBType.String) 
+    {
+        isString = true;
+        valueStr = "'" + asRule.value + "'"; // strings are enclosed in single quotes. 
+    } else if (asRule.type == JQBType.Integer)
+    {
+        isNumber = true;
+        valueStr += asRule.value;
+    } else {
+        throw "Unhandled value type: " + asRule.type;
+    }
+
+    // TODO - check isString, isNumber, etc and make sure operator is supported
+    var opStr : string = null;
+    if (asRule.operator == JQBOperator.Equal)
+    {
+        opStr = " == ";
+    } else if (asRule.operator ==  JQBOperator.NotEqual)
+    {
+        opStr = " != ";
+    }else {
+        throw "Unhandled operator type: " + asRule.operator;
+    }
+    // TODO -  Add other operators here
+
+    var expressionStr = "(" + asRule.field + opStr + valueStr + ")";
+    return expressionStr;        
+}
+
+ // Given a JQueryBuilder object, convert it to a TRC string. 
+ // The query object is a potentially recursive tree. 
+function  convertToExpressionString(query : IQueryCondition | IQueryRule) : string
+{
+    var asQuery = (<IQueryCondition>query);
+    if (asQuery.condition)
+    {
+        return convertConditionToExpressionString(asQuery);
+    }
+
+    var asRule = (<IQueryRule> query);        
+    {
+        return convertRuleToExpressionString(asRule);
+    }
+}
+
+// Constant values for JQueryBuilder Types and Operators. 
+class JQBType
+{
+    public static String = "string";
+    public static Integer = "integer";
+    public static Boolean = "boolean";
+}
+class JQBOperator 
+{
+    public static Equal = "equal";
+    public static NotEqual = "not_equal";
+    public static IsEmpty = "is_empty";
+    public static IsNotEmpty = "is_not_empty";
+}
+
+// TypeScript Definitions of query from http://querybuilder.js.org/#advanced
+// This can form a recursive tree. 
+interface IQueryRule {
+    id : string;
+    field : string;
+    type : string;
+    input : string; // string, integer, double, date, time, datetime and boolean. 
+    operator : string; // "equal", "not_equal", "less", "less_or_equal", "greater", "greater_or_equal", "is_empty", "is_not_empty"
+    value : string;
+}
+interface IQueryCondition {
+    condition : string; // "AND", "OR"
+    rules : IQueryRule[]|IQueryCondition[]
 }
