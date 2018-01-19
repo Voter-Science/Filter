@@ -31,12 +31,31 @@ export class ColumnStats {
     private _numBlanks : number = 0;  // number of blank elements in this column. 
     private _isTagType : boolean; // true if this column is a tag. 
 
+    private _isDate : boolean;
+
+    private _isNumber : boolean; 
+    private _numberMin : number;
+    private _numberMax : number;
+
+    
+    public isTagType() : boolean { return this._isTagType };
+    public isNumberType() : boolean { return this._isNumber; };
+
+    public hasBlanks() : boolean { return this._numBlanks > 0; }
+
+    // Only valid if IsNumberType
+    public getNumberRange() : number[] { return [ this._numberMin, this._numberMax]; };
+    public getPossibleValues() : string[] { return this._uniques; }
+    
+
     public constructor(vals: string[]) {
         
         var nonBlank : string[] = []
-        
+                
+
         // Really should get this from metadata instead. 
         var isTagType = true; // Tag is either Blank or '1'
+        this._isNumber = true;
         
         for(var i in vals)
         {
@@ -48,14 +67,42 @@ export class ColumnStats {
                 {
                     isTagType = false;
                 }
+
+                // Check int? 
+                if (!isNaN(<any> val))
+                {
+                    var num = parseFloat(val);
+                    if (this._numberMin) {
+                        if (num < this._numberMin) {
+                            this._numberMin = num;
+                        }
+                    } else {
+                        this._numberMin = num;
+                    }
+                    if (this._numberMax) {
+                        if (num > this._numberMax) {
+                            this._numberMax  = num;
+                        }
+                    } else {
+                        this._numberMax = num;
+                    }
+                } else {
+                    this._isNumber = false;
+                }
+
                 nonBlank.push(val);
             }
         }
-        if (this._numBlanks == 0)
+        if (this._numBlanks == 0 || this._numBlanks == vals.length)
         {
             isTagType = false; // Must have at least one occurence of the tag .
         }
         this._isTagType = isTagType;
+
+        if (this._isTagType || !this._numberMin) 
+        {
+            this._isNumber = false; // tag takes precedence 
+        }
 
         this._uniques = sortByFrequency(nonBlank);
     }
@@ -84,7 +131,13 @@ export class ColumnStats {
         var text = "";
         var threshold = 8; // Only display discrete values for small numbers
         if (this._uniques.length > threshold) {
-            text = this._uniques.length + " total unique values";
+            if (this._isNumber) {
+                return "Number in range (" + this._numberMin + "," + this._numberMax + ")";
+            }
+            else 
+            {
+                text = this._uniques.length + " total unique values";
+            }
         } else {
             // values are already sorted by frequency. 
             text = this._uniques.join();
