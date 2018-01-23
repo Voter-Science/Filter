@@ -14,7 +14,6 @@ import * as core from 'trc-core/core'
 import * as trcSheet from 'trc-sheet/sheet'
 import * as trcSheetContents from 'trc-sheet/sheetContents'
 import * as trcSheetEx from 'trc-sheet/sheetEx'
-import * as gps from 'trc-web/gps'
 
 import * as plugin from 'trc-web/plugin'
 import * as trchtml from 'trc-web/html'
@@ -77,7 +76,6 @@ export class MyPlugin {
         return this.getStats().then(() => {
             return this._sheet.getInfoAsync().then(info => {
                 this.updateInfo(info);
-                this.updateQbuilderInfo(info);
             });
         });
     }
@@ -172,6 +170,8 @@ export class MyPlugin {
                     this._columnStats = values;
 
                     this.renderColumnInfo();
+
+                    this.renderQbuilderInfo();
                 });
             });
     }
@@ -271,30 +271,58 @@ export class MyPlugin {
     }
 
     // Display sheet info on HTML page
-    public updateQbuilderInfo(info: trcSheet.ISheetInfoResult): void {
+    public renderQbuilderInfo(): void {
 
-        for (var i in info.Columns) {
+        for (var columnName in this._columnStats)
+        {
+            var culumnDetail = <ColumnStats>this._columnStats[columnName];
+            var text = culumnDetail.getSummaryString(this._rowCount);
+            var isTagType = culumnDetail.isTagType();
+            var getPossibleValues = culumnDetail.getPossibleValues();
 
-            var child = info.Columns[i];
-            var id = child.Name;
-            var label = child.DisplayName;
-            //var type = child.Type;
+            var optionsData : any = {};
 
-            var type = 'string';
+            var type = "string";
+            var input = "text";
+            var operators = ['equal', 'not_equal', 'is_empty', 'is_not_empty'];
+            var values : any = {};
 
-            var fields : any = {
-                'id' : id,
-                'label' : label,
-                'type' : type
+            var valueLength = getPossibleValues.length;
+
+            if (valueLength > 0) {
+
+                if (valueLength < 10)
+                {
+                    type = "integer";
+                    input = "select";
+                } else if ( isTagType === true)
+                {
+                    type = "integer";
+                    input = "radio";
+                    operators = ['equal'];
+                }
+                var options : any = [];
+                if ((input == "radio") || (input == "select")) {
+                    values = text.split(',');
+                }
+
+                var fields : any = {
+                    'id' : columnName,
+                    'label' : columnName,
+                    'type' : type,
+                    'input' : input,
+                    'values' : values,
+                    'operators' : operators
+                }
+                this._optionFilter.push(fields);
             }
-            this._optionFilter.push(fields);
-
         }
 
         $('#builder-basic').queryBuilder({
             //plugins: ['bt-tooltip-errors'],
 
             filters: this._optionFilter
+
         });
     }
 
@@ -317,20 +345,50 @@ export class MyPlugin {
 
     // downloading all contents and rendering them to HTML can take some time.
     public onGetSheetContents(): void {
-        //trchtml.Loading("contents");
-        //$("#contents").empty();
-        $("#qb-contents").text("Loading...");
 
-        var queryFilter = $('#builder-basic').queryBuilder('getRules');
+        clearError();
+        var query = $('#builder-basic').queryBuilder('getRules');
+        var queryFilter = convertToExpressionString(query);
 
-        trcSheetEx.SheetEx.InitAsync(this._sheet, this._gps).then((sheetEx)=>
-        {
-            return this._sheet.getSheetContentsAsync(queryFilter).then((contents) => {
-                var render = new trchtml.SheetControl("qb-contents", sheetEx);
-                // could set other options on render() here
-                render.render();
-            }).catch(showError);
+        // Columns must exist. verify that Address,City exist before asking for them.
+        this._sheet.getSheetContentsAsync(queryFilter, ["RecId", "Address", "City"]).then(contents => {
+            // var count = contents["RecId"].length;
+
+            var text = this.getResultString(contents);
+
+            this.addQueryBuilderResult(queryFilter, text);
+
+        }).catch(showError);
+    }
+
+    // Add the result to the html log.
+    private addQueryBuilderResult(filter: string, result: string): void {
+        this._outputCounter++;
+
+        // Add to output log.
+        var root = $("#qb-prevresults");
+
+        var id = "result_" + this._outputCounter;
+        var e1 = $("<tr id='" + id + "'>");
+        var e2a = $("<td>").text(filter);
+
+        // If we have richer results, this could be a more complex html object.
+        var e2b = $("<td>").text(result);
+
+        var e2c = $("<td>");
+        var e3 = $("<button>").text("[remove]").click(() => {
+            $("#" + id).remove();
         });
+        e2c.append(e3);
+
+        e1.append(e2a);
+        e1.append(e2b);
+        e1.append(e2c);
+
+        // Show most recent results at top, but after the first <tr> that serves as header
+        //$('#prevresults thead:first').after(e1);
+        $('#qb-prevresults').prepend(e1);
+        //root.prepend(e1);
     }
 }
 
@@ -338,7 +396,7 @@ export class MyPlugin {
 function  convertConditionToExpressionString(asQuery : IQueryCondition) : string
 {
     var opStr : string;
-    if ( asQuery.condition == "AND") 
+    if ( asQuery.condition == "AND")
     {
         opStr = " && ";
     }  else if (asQuery.condition == "OR")
@@ -351,11 +409,11 @@ function  convertConditionToExpressionString(asQuery : IQueryCondition) : string
     var expressionStr : string = "(";
     for(var i in asQuery.rules)
     {
-        if (expressionStr.length > 1) 
+        if (expressionStr.length > 1)
         {
             expressionStr += opStr;
         }
-        expressionStr += convertToExpressionString(asQuery.rules[i]);    
+        expressionStr += convertToExpressionString(asQuery.rules[i]);
     }
     expressionStr += ")";
 
@@ -364,27 +422,27 @@ function  convertConditionToExpressionString(asQuery : IQueryCondition) : string
 
 function  convertRuleToExpressionString(asRule : IQueryRule) : string
 {
-    // Unary operators don't have a value 
+    // Unary operators don't have a value
     // "is_empty", "is_not_empty"
     if (asRule.operator == JQBOperator.IsEmpty)
     {
         return "IsBlank(" + asRule.field + ")";
-    } 
+    }
     if (asRule.operator == JQBOperator.IsNotEmpty)
     {
         return "(!IsBlank(" + asRule.field + "))";
-    } 
+    }
 
-    // We have a binary operator. 
+    // We have a binary operator.
 
-    // Add value 
+    // Add value
     var valueStr : string;
     var isString: boolean = false;
     var isNumber : boolean = false;
-    if (asRule.type == JQBType.String) 
+    if (asRule.type == JQBType.String)
     {
         isString = true;
-        valueStr = "'" + asRule.value + "'"; // strings are enclosed in single quotes. 
+        valueStr = "'" + asRule.value + "'"; // strings are enclosed in single quotes.
     } else if (asRule.type == JQBType.Integer)
     {
         isNumber = true;
@@ -407,11 +465,11 @@ function  convertRuleToExpressionString(asRule : IQueryRule) : string
     // TODO -  Add other operators here
 
     var expressionStr = "(" + asRule.field + opStr + valueStr + ")";
-    return expressionStr;        
+    return expressionStr;
 }
 
- // Given a JQueryBuilder object, convert it to a TRC string. 
- // The query object is a potentially recursive tree. 
+ // Given a JQueryBuilder object, convert it to a TRC string.
+ // The query object is a potentially recursive tree.
 function  convertToExpressionString(query : IQueryCondition | IQueryRule) : string
 {
     var asQuery = (<IQueryCondition>query);
@@ -420,20 +478,20 @@ function  convertToExpressionString(query : IQueryCondition | IQueryRule) : stri
         return convertConditionToExpressionString(asQuery);
     }
 
-    var asRule = (<IQueryRule> query);        
+    var asRule = (<IQueryRule> query);
     {
         return convertRuleToExpressionString(asRule);
     }
 }
 
-// Constant values for JQueryBuilder Types and Operators. 
+// Constant values for JQueryBuilder Types and Operators.
 class JQBType
 {
     public static String = "string";
     public static Integer = "integer";
     public static Boolean = "boolean";
 }
-class JQBOperator 
+class JQBOperator
 {
     public static Equal = "equal";
     public static NotEqual = "not_equal";
@@ -442,12 +500,12 @@ class JQBOperator
 }
 
 // TypeScript Definitions of query from http://querybuilder.js.org/#advanced
-// This can form a recursive tree. 
+// This can form a recursive tree.
 interface IQueryRule {
     id : string;
     field : string;
     type : string;
-    input : string; // string, integer, double, date, time, datetime and boolean. 
+    input : string; // string, integer, double, date, time, datetime and boolean.
     operator : string; // "equal", "not_equal", "less", "less_or_equal", "greater", "greater_or_equal", "is_empty", "is_not_empty"
     value : string;
 }

@@ -69,92 +69,111 @@
     </span>
     <div id="_mainbody" class="container" style="display:none">
 
-        <ul  class="nav nav-pills">
-            <li class="nav-item active">
-                <a class="nav-link" href="#queryBuilder" data-toggle="tab">Query builder</a>
+        <ul class="nav nav-tabs">
+            <li class="active">
+                <a href="#queryBuilder" data-toggle="tab">Query builder</a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#advance" data-toggle="tab">Advance</a>
+            <li >
+                <a href="#advance" data-toggle="tab">Advance</a>
             </li>
         </ul>
         <div class="tab-content clearfix">
-            <div class="tab-pane active" id="queryBuilder">
-                <h1>QueryBuilder for Filter Expressions</h1>
-                <table class="table">
-                    <tr>
-                        <td>
-                            <p>This plugin lets you run queries and filters against your data.</p>
-                            <div>
-                                <div id="builder-basic"></div>
 
-                                <div class="btn-group">
-                                    <button id="btnResetRule" onclick="_plugin.onResetRule()" class="btn btn-warning reset" data-target="basic">Reset</button>
-                                    <button id="btnGetRule" onclick="_plugin.onGetRule()" class="btn btn-success set-json" data-target="basic">Get rules</button>
-                                    <button id="btnGetContent" onclick="_plugin.onGetSheetContents()" class="btn btn-primary parse-json" data-target="basic">Run Query</button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-                <div id="qb-contents" style="float:left;"></div>
+            <div class="tab-pane active" id="queryBuilder">
+                <div class="row">
+                    <h1>QueryBuilder for Filter Expressions</h1>
+                    <div class="col-sm-8">
+                        <p>This plugin lets you run queries and filters against your data.</p>
+
+                        <div id="builder-basic"></div>
+
+                        <div class="btn-group">
+                            <button id="btnResetRule" onclick="_plugin.onResetRule()" class="btn btn-warning reset" data-target="basic">Reset</button>
+                            <button id="btnGetRule" onclick="_plugin.onGetRule()" class="btn btn-success set-json" data-target="basic">Get rules</button>
+                            <button id="btnGetContent" onclick="_plugin.onGetSheetContents()" class="btn btn-primary parse-json" data-target="basic">Run Query</button>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <h3>Previous results </h3>
+                        <p>Here are the results from previous queries. Most recent is on top:</p>
+
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <td>Expression</td>
+                                    <td>Result</td>
+                                    <td></td>
+                                </tr>
+                            </thead>
+                            <tbody id="qb-prevresults">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div class="tab-pane" id="advance">
-                <h1>Query and Partition with Filter Expressions</h1>
+                <div class="row">
+                    <h1>Query and Partition with Filter Expressions</h1>
 
+                    <div class="col-sm-8">
+                        <p>This plugin lets you run queries against your data.</p>
+                        <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers.
+                            (You must run the query first to enable saving)</p>
+
+                        <p>See
+                            <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
+
+                        <p>Set filter:</p>
+                        <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
+
+                        <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
+
+                        <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
+                        <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
+                    </div>
+                    <div class="col-sm-4">
+                        <h3>Previous results </h3>
+                        <p>Here are the results from previous queries. Most recent is on top:</p>
+
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <td>Expression</td>
+                                    <td>Result</td>
+                                    <td></td>
+                                </tr>
+                            </thead>
+                            <tbody id="prevresults">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <h3></h3>
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#existing-columns">Existing columns</button>
+            <div id="existing-columns" class="collapse">
                 <table>
                     <tr>
+                        <td>Total Rows:</td>
                         <td>
-                            <p>This plugin lets you run queries against your data.</p>
-                            <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers.
-                                (You must run the query first to enable saving)</p>
-
-                            <p>See
-                                <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
-
-                            <p>Set filter:</p>
-                            <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
-
-                            <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
-
-                            <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
-                            <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
-
-                            <h3>Existing columns:</h3>
-                            <table>
-                                <tr>
-                                    <td>Total Rows:</td>
-                                    <td>
-                                        <div id="RowCount"></div>
-                                    </td>
-                                </tr>
-                            </table>
-                            <p>These are existing columns you can use in the query:</p>
-                            <div id="contents"></div>
-
-                            <h3>Existing Filters:</h3>
-                            <p>These are existing filters (aka 'child sheets') for this sheet.</p>
-                            <div id="existingfilters"></div>
-
-                        </td>
-                        <td style="vertical-align: top;">
-                            <h3>Previous results </h3>
-                            <p>Here are the results from previous queries. Most recent is on top:</p>
-
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <td>Expression</td>
-                                        <td>Result</td>
-                                        <td></td>
-                                    </tr>
-                                </thead>
-                                <tbody id="prevresults">
-
-                                </tbody>
-                            </table>
+                            <div id="RowCount"></div>
                         </td>
                     </tr>
                 </table>
+                <p>These are existing columns you can use in the query:</p>
+                <div id="contents"></div>
+            </div>
+        </div>
+        <div class="row">
+            <h3></h3>
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#existing-filters">Existing Filters</button>
+            <div id="existing-filters" class="collapse">
+                <p>These are existing filters (aka 'child sheets') for this sheet.</p>
+                <div id="existingfilters"></div>
             </div>
         </div>
     </div>
