@@ -335,7 +335,10 @@ export class MyPlugin {
             }
         }
 
-        $('#builder-basic').queryBuilder({
+        $('#builder-basic').on("change.queryBuilder", () => {
+            //handle onchange event of query builder
+            this.onChangeFilter();
+        }) .queryBuilder({
             //plugins: ['bt-tooltip-errors'],
 
             filters: this._optionFilter
