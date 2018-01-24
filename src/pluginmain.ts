@@ -178,9 +178,14 @@ export class MyPlugin {
 
     // Demonstrate receiving UI handlers
     public onClickRefresh(): void {
-        clearError();
         var filter = $("#filter").val();
 
+        this.showFilterResult(filter);
+    }
+
+    // Add the result to the html log.
+    private showFilterResult(filter: string): void {
+        clearError();
         // Columns must exist. verify that Address,City exist before asking for them.
         this._sheet.getSheetContentsAsync(filter, ["RecId", "Address", "City"]).then(contents => {
             // var count = contents["RecId"].length;
@@ -283,7 +288,7 @@ export class MyPlugin {
 
                 var type: string; // JQBType
                 var input: string; // JQBInput;
-                var operators: string[]; // JQBOperator[]     
+                var operators: string[]; // JQBOperator[]
                 var values: any = {};
 
                 if (isTagType) {
@@ -296,21 +301,21 @@ export class MyPlugin {
                     if (columnDetail.isNumberType()) {
                         type = JQBType.Double;
                         input = JQBInput.Number;
-                        operators = [ // Numberical operations 
+                        operators = [ // Numberical operations
                             JQBOperator.Equal, JQBOperator.NotEqual,
                             JQBOperator.IsEmpty, JQBOperator.IsNotEmpty,
                             JQBOperator.Less, JQBOperator.LessOrEqual,
                             JQBOperator.Greater, JQBOperator.GreaterOrEqual
                         ];
-                    } else {                        
+                    } else {
                         type = JQBType.String;
                         input = JQBInput.Text;
-                        operators = [ // String operators. 
+                        operators = [ // String operators.
                             JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty, JQBOperator.IsNotEmpty];
                     }
 
                     if (valueLength < 10) {
-                        // If short enough list, show as a dropdown with discrete values. 
+                        // If short enough list, show as a dropdown with discrete values.
                         input = JQBInput.Select;
                         values = getPossibleValues;
                     }
@@ -357,50 +362,10 @@ export class MyPlugin {
 
     // downloading all contents and rendering them to HTML can take some time.
     public onGetSheetContents(): void {
-
-        clearError();
         var query = $('#builder-basic').queryBuilder('getRules');
-        var queryFilter = convertToExpressionString(query);
+        var filter = convertToExpressionString(query);
 
-        // Columns must exist. verify that Address,City exist before asking for them.
-        this._sheet.getSheetContentsAsync(queryFilter, ["RecId", "Address", "City"]).then(contents => {
-            // var count = contents["RecId"].length;
-
-            var text = this.getResultString(contents);
-
-            this.addQueryBuilderResult(queryFilter, text);
-
-        }).catch(showError);
-    }
-
-    // Add the result to the html log.
-    private addQueryBuilderResult(filter: string, result: string): void {
-        this._outputCounter++;
-
-        // Add to output log.
-        var root = $("#qb-prevresults");
-
-        var id = "result_" + this._outputCounter;
-        var e1 = $("<tr id='" + id + "'>");
-        var e2a = $("<td>").text(filter);
-
-        // If we have richer results, this could be a more complex html object.
-        var e2b = $("<td>").text(result);
-
-        var e2c = $("<td>");
-        var e3 = $("<button>").text("[remove]").click(() => {
-            $("#" + id).remove();
-        });
-        e2c.append(e3);
-
-        e1.append(e2a);
-        e1.append(e2b);
-        e1.append(e2c);
-
-        // Show most recent results at top, but after the first <tr> that serves as header
-        //$('#prevresults thead:first').after(e1);
-        $('#qb-prevresults').prepend(e1);
-        //root.prepend(e1);
+        this.showFilterResult(filter);
     }
 }
 
@@ -507,17 +472,17 @@ class TagValues {
 }
 
 // Constant values for JQueryBuilder Types and Operators.
-class JQBInput // Type of input control 
+class JQBInput // Type of input control
 {
     public static Text = "text";
     public static Number = "number";
-    public static Select = "select"; // dropdown 
+    public static Select = "select"; // dropdown
     public static Radio = "radio";
 }
 
 class JQBType {
     public static String = "string";
-    // public static Integer = "integer"; // use Double instead 
+    // public static Integer = "integer"; // use Double instead
     public static Double = "double";
     public static Boolean = "boolean";
 }
