@@ -34,7 +34,7 @@ function sortByFrequency(array : string[]) : string[]{
 // Analyze column contents to infer statistics and type.
 export class ColumnStats {
     private _uniques: Array<string>; // array of unique values in this column 
-    private _possibleValues: Array<string>; // array of unique values in this column 
+    private _possibleValues: Array<string>; // non-blank unique values in this column. 
     private _numBlanks : number = 0;  // number of blank elements in this column. 
     private _isTagType : boolean; // true if this column is a tag. 
 
@@ -59,8 +59,7 @@ export class ColumnStats {
         
         var nonBlank : string[] = []
 
-        this._possibleValues = Array.from(new Set(vals));
-
+        this._possibleValues = []; // empty 
 
         // Really should get this from metadata instead. 
         var isTagType = true; // Tag is either Blank or '1'
@@ -72,6 +71,7 @@ export class ColumnStats {
             if (!val || val.length == 0) {
                 this._numBlanks++;
             } else {
+                this._possibleValues.push(val);
                 if (val != "1" && val != "0")
                 {
                     isTagType = false;

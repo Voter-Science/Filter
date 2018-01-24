@@ -30,7 +30,7 @@ declare var showError: (error: any) => void; // error handler defined in index.h
 export class MyPlugin {
     private _sheet: trcSheet.SheetClient;
     private _pluginClient: plugin.PluginClient;
-    private _gps : common.IGeoPointProvider;
+    private _gps: common.IGeoPointProvider;
 
     // Used to give each result a unique HTML id.
     private _outputCounter: number = 0;
@@ -196,8 +196,7 @@ export class MyPlugin {
     }
 
     // Given query results, scan it and convert to a string.
-    private getResultString(contents : trcSheetContents.ISheetContents) : string
-    {
+    private getResultString(contents: trcSheetContents.ISheetContents): string {
         var count = contents["RecId"].length;
 
         var text = count + " rows";
@@ -205,18 +204,16 @@ export class MyPlugin {
         // Check for households
         var addrColumn = contents["Address"];
         var cityColumn = contents["City"];
-        if (addrColumn && cityColumn)
-        {
+        if (addrColumn && cityColumn) {
             var uniqueAddrs = new HashCount();
-            for(var i in addrColumn)
-            {
+            for (var i in addrColumn) {
                 var addr = addrColumn[i] + "," + cityColumn[i];
                 uniqueAddrs.Add(addr);
             }
 
             var countAddrs = uniqueAddrs.getCount();
 
-            text +="; " + countAddrs + " households";
+            text += "; " + countAddrs + " households";
         }
         return text;
     }
@@ -273,56 +270,61 @@ export class MyPlugin {
     // Display sheet info on HTML page
     public renderQbuilderInfo(): void {
 
-        for (var columnName in this._columnStats)
-        {
+        for (var columnName in this._columnStats) {
             var columnDetail = <ColumnStats>this._columnStats[columnName];
-            
-            var isTagType = columnDetail.isTagType();
+
             var getPossibleValues = columnDetail.getPossibleValues();
-
-            var optionsData : any = {};
-
-            var type = JQBType.String;
-            var input = JQBInput.Text;
-            var operators = [
-                JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty,JQBOperator.IsNotEmpty];
-            
-                var values : any = {};
 
             var valueLength = getPossibleValues.length;
 
             if (valueLength > 0) {
+                var isTagType = columnDetail.isTagType();
+                var optionsData: any = {};
 
-                if (isTagType === true)
-                {
-                    type = JQBType.Integer;
+                var type: string; // JQBType
+                var input: string; // JQBInput;
+                var operators: string[]; // JQBOperator[]     
+                var values: any = {};
+
+                if (isTagType) {
+                    type = JQBType.Boolean;
                     input = JQBInput.Radio;
-                    operators = [ JQBOperator.Equal ];
+                    operators = [JQBOperator.Equal];
+                    values = [TagValues.True, TagValues.False];
                 }
-                else if (valueLength < 10)
-                {
+                else {
+                    if (columnDetail.isNumberType()) {
+                        type = JQBType.Double;
+                        input = JQBInput.Number;
+                        operators = [ // Numberical operations 
+                            JQBOperator.Equal, JQBOperator.NotEqual,
+                            JQBOperator.IsEmpty, JQBOperator.IsNotEmpty,
+                            JQBOperator.Less, JQBOperator.LessOrEqual,
+                            JQBOperator.Greater, JQBOperator.GreaterOrEqual
+                        ];
+                    } else {                        
+                        type = JQBType.String;
+                        input = JQBInput.Text;
+                        operators = [ // String operators. 
+                            JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty, JQBOperator.IsNotEmpty];
+                    }
+
+                    if (valueLength < 10) {
+                        // If short enough list, show as a dropdown with discrete values. 
                         input = JQBInput.Select;
-                } 
-                if (columnDetail.isNumberType())
-                {
-                    type = JQBType.Integer
-                } else
-                {
-                    type = JQBType.String;
+                        values = getPossibleValues;
+                    }
                 }
 
-                var options : any = [];
-                if ((input == JQBInput.Radio) || (input == JQBInput.Select)) {
-                    values = getPossibleValues;
-                }
+                var options: any = [];
 
-                var fields : any = {
-                    'id' : columnName,
-                    'label' : columnName,
-                    'type' : type,
-                    'input' : input,
-                    'values' : values,
-                    'operators' : operators
+                var fields: any = {
+                    'id': columnName,
+                    'label': columnName,
+                    'type': type,
+                    'input': input,
+                    'values': values,
+                    'operators': operators
                 }
                 this._optionFilter.push(fields);
             }
@@ -403,24 +405,19 @@ export class MyPlugin {
 }
 
 
-function  convertConditionToExpressionString(asQuery : IQueryCondition) : string
-{
-    var opStr : string;
-    if ( asQuery.condition == "AND")
-    {
+function convertConditionToExpressionString(asQuery: IQueryCondition): string {
+    var opStr: string;
+    if (asQuery.condition == "AND") {
         opStr = " && ";
-    }  else if (asQuery.condition == "OR")
-    {
+    } else if (asQuery.condition == "OR") {
         opStr = " || ";
     } else {
         throw "Unsupported operator: " + asQuery.condition;
     }
 
-    var expressionStr : string = "(";
-    for(var i in asQuery.rules)
-    {
-        if (expressionStr.length > 1)
-        {
+    var expressionStr: string = "(";
+    for (var i in asQuery.rules) {
+        if (expressionStr.length > 1) {
             expressionStr += opStr;
         }
         expressionStr += convertToExpressionString(asQuery.rules[i]);
@@ -430,46 +427,54 @@ function  convertConditionToExpressionString(asQuery : IQueryCondition) : string
     return expressionStr;
 }
 
-function  convertRuleToExpressionString(asRule : IQueryRule) : string
-{
+function convertRuleToExpressionString(asRule: IQueryRule): string {
     // Unary operators don't have a value
     // "is_empty", "is_not_empty"
-    if (asRule.operator == JQBOperator.IsEmpty)
-    {
+    if (asRule.operator == JQBOperator.IsEmpty) {
         return "IsBlank(" + asRule.field + ")";
     }
-    if (asRule.operator == JQBOperator.IsNotEmpty)
-    {
+    if (asRule.operator == JQBOperator.IsNotEmpty) {
         return "(!IsBlank(" + asRule.field + "))";
     }
 
     // We have a binary operator.
 
     // Add value
-    var valueStr : string;
+    var valueStr: string;
     var isString: boolean = false;
-    var isNumber : boolean = false;
-    if (asRule.type == JQBType.String)
-    {
+    var isNumber: boolean = false;
+
+    if (asRule.type == JQBType.Boolean) {
+        if (asRule.value == TagValues.True) {
+            return "(IsTrue(" + asRule.field + "))";
+        } else {
+            return "(IsFalse(" + asRule.field + "))";
+        }
+    } else if (asRule.type == JQBType.String) {
         isString = true;
         valueStr = "'" + asRule.value + "'"; // strings are enclosed in single quotes.
-    } else if (asRule.type == JQBType.Integer)
-    {
+    } else if (asRule.type == JQBType.Double) {
         isNumber = true;
-        valueStr += asRule.value;
+        valueStr = asRule.value;
     } else {
         throw "Unhandled value type: " + asRule.type;
     }
 
     // TODO - check isString, isNumber, etc and make sure operator is supported
-    var opStr : string = null;
-    if (asRule.operator == JQBOperator.Equal)
-    {
+    var opStr: string = null;
+    if (asRule.operator == JQBOperator.Equal) {
         opStr = " == ";
-    } else if (asRule.operator ==  JQBOperator.NotEqual)
-    {
+    } else if (asRule.operator == JQBOperator.NotEqual) {
         opStr = " != ";
-    }else {
+    } else if (asRule.operator == JQBOperator.Less) {
+        opStr = " < ";
+    } else if (asRule.operator == JQBOperator.LessOrEqual) {
+        opStr = " <= ";
+    } else if (asRule.operator == JQBOperator.Greater) {
+        opStr = " > ";
+    } else if (asRule.operator == JQBOperator.GreaterOrEqual) {
+        opStr = " >= ";
+    } else {
         throw "Unhandled operator type: " + asRule.operator;
     }
     // TODO -  Add other operators here
@@ -478,56 +483,66 @@ function  convertRuleToExpressionString(asRule : IQueryRule) : string
     return expressionStr;
 }
 
- // Given a JQueryBuilder object, convert it to a TRC string.
- // The query object is a potentially recursive tree.
-function  convertToExpressionString(query : IQueryCondition | IQueryRule) : string
-{
-    var asQuery = (<IQueryCondition>query);
-    if (asQuery.condition)
-    {
-        return convertConditionToExpressionString(asQuery);
-    }
+// Given a JQueryBuilder object, convert it to a TRC string.
+// The query object is a potentially recursive tree.
+function convertToExpressionString(query: IQueryCondition | IQueryRule): string {
+    try {
+        var asQuery = (<IQueryCondition>query);
+        if (asQuery.condition) {
+            return convertConditionToExpressionString(asQuery);
+        }
 
-    var asRule = (<IQueryRule> query);
-    {
-        return convertRuleToExpressionString(asRule);
+        var asRule = (<IQueryRule>query);
+        {
+            return convertRuleToExpressionString(asRule);
+        }
+    } catch (e) {
+        alert("Error building expression:" + e);
     }
 }
 
-// Constant values for JQueryBuilder Types and Operators.
+class TagValues {
+    public static True = "true";
+    public static False = "false";
+}
 
+// Constant values for JQueryBuilder Types and Operators.
 class JQBInput // Type of input control 
 {
     public static Text = "text";
+    public static Number = "number";
     public static Select = "select"; // dropdown 
     public static Radio = "radio";
 }
 
-class JQBType
-{
+class JQBType {
     public static String = "string";
-    public static Integer = "integer";
+    // public static Integer = "integer"; // use Double instead 
+    public static Double = "double";
     public static Boolean = "boolean";
 }
-class JQBOperator
-{
+class JQBOperator {
     public static Equal = "equal";
     public static NotEqual = "not_equal";
     public static IsEmpty = "is_empty";
     public static IsNotEmpty = "is_not_empty";
+    public static Less = "less";
+    public static LessOrEqual = "less_or_equal";
+    public static Greater = "greater";
+    public static GreaterOrEqual = "greater_or_equal";
 }
 
 // TypeScript Definitions of query from http://querybuilder.js.org/#advanced
 // This can form a recursive tree.
 interface IQueryRule {
-    id : string;
-    field : string;
-    type : string;
-    input : string; // string, integer, double, date, time, datetime and boolean.
-    operator : string; // "equal", "not_equal", "less", "less_or_equal", "greater", "greater_or_equal", "is_empty", "is_not_empty"
-    value : string;
+    id: string;
+    field: string;
+    type: string; // string, integer, double, date, time, datetime and boolean.
+    input: string;  // JQBInput
+    operator: string; // "equal", "not_equal", "less", "less_or_equal", "greater", "greater_or_equal", "is_empty", "is_not_empty"
+    value: string;
 }
 interface IQueryCondition {
-    condition : string; // "AND", "OR"
-    rules : IQueryRule[]|IQueryCondition[]
+    condition: string; // "AND", "OR"
+    rules: IQueryRule[] | IQueryCondition[]
 }
