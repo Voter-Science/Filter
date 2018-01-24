@@ -275,35 +275,45 @@ export class MyPlugin {
 
         for (var columnName in this._columnStats)
         {
-            var culumnDetail = <ColumnStats>this._columnStats[columnName];
-            var text = culumnDetail.getSummaryString(this._rowCount);
-            var isTagType = culumnDetail.isTagType();
-            var getPossibleValues = culumnDetail.getPossibleValues();
+            var columnDetail = <ColumnStats>this._columnStats[columnName];
+            
+            var isTagType = columnDetail.isTagType();
+            var getPossibleValues = columnDetail.getPossibleValues();
 
             var optionsData : any = {};
 
-            var type = "string";
-            var input = "text";
-            var operators = ['equal', 'not_equal', 'is_empty', 'is_not_empty'];
-            var values : any = {};
+            var type = JQBType.String;
+            var input = JQBInput.Text;
+            var operators = [
+                JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty,JQBOperator.IsNotEmpty];
+            
+                var values : any = {};
 
             var valueLength = getPossibleValues.length;
 
             if (valueLength > 0) {
 
-                if (valueLength < 10)
+                if (isTagType === true)
                 {
-                    type = "integer";
-                    input = "select";
-                } else if ( isTagType === true)
-                {
-                    type = "integer";
-                    input = "radio";
-                    operators = ['equal'];
+                    type = JQBType.Integer;
+                    input = JQBInput.Radio;
+                    operators = [ JQBOperator.Equal ];
                 }
+                else if (valueLength < 10)
+                {
+                        input = JQBInput.Select;
+                } 
+                if (columnDetail.isNumberType())
+                {
+                    type = JQBType.Integer
+                } else
+                {
+                    type = JQBType.String;
+                }
+
                 var options : any = [];
-                if ((input == "radio") || (input == "select")) {
-                    values = text.split(',');
+                if ((input == JQBInput.Radio) || (input == JQBInput.Select)) {
+                    values = getPossibleValues;
                 }
 
                 var fields : any = {
@@ -485,6 +495,14 @@ function  convertToExpressionString(query : IQueryCondition | IQueryRule) : stri
 }
 
 // Constant values for JQueryBuilder Types and Operators.
+
+class JQBInput // Type of input control 
+{
+    public static Text = "text";
+    public static Select = "select"; // dropdown 
+    public static Radio = "radio";
+}
+
 class JQBType
 {
     public static String = "string";

@@ -1,8 +1,14 @@
 
 
+interface IPossibleValues
+{
+    values : string[];
+    valuesWithFrqeuency : string[];
+}
+
 // https://stackoverflow.com/questions/3579486/sort-a-javascript-array-by-frequency-and-then-filter-repeats
 // Return array with duplicates removed and sorted by frequency. 
-function sortByFrequency(array : string[]) {
+function sortByFrequency(array : string[]) : string[]{
     var frequency : any= {};
 
     array.forEach(function(value) { frequency[value] = 0; });
@@ -28,6 +34,7 @@ function sortByFrequency(array : string[]) {
 // Analyze column contents to infer statistics and type.
 export class ColumnStats {
     private _uniques: Array<string>; // array of unique values in this column 
+    private _possibleValues: Array<string>; // array of unique values in this column 
     private _numBlanks : number = 0;  // number of blank elements in this column. 
     private _isTagType : boolean; // true if this column is a tag. 
 
@@ -45,13 +52,15 @@ export class ColumnStats {
 
     // Only valid if IsNumberType
     public getNumberRange() : number[] { return [ this._numberMin, this._numberMax]; };
-    public getPossibleValues() : string[] { return this._uniques; }
+    public getPossibleValues() : string[] { return this._possibleValues; }
     
 
     public constructor(vals: string[]) {
         
         var nonBlank : string[] = []
-                
+
+        this._possibleValues = Array.from(new Set(vals));
+
 
         // Really should get this from metadata instead. 
         var isTagType = true; // Tag is either Blank or '1'
