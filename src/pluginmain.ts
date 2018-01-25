@@ -297,8 +297,9 @@ export class MyPlugin {
                     operators = [JQBOperator.Equal];
                     values = [TagValues.True, TagValues.False];
                 }
-                else {
-                    if (columnDetail.isNumberType()) {
+                else {  
+                    var bday :boolean = isDateColumn(columnName);                  
+                    if (bday || columnDetail.isNumberType()) {
                         type = JQBType.Double;
                         input = JQBInput.Number;
                         operators = [ // Numberical operations
@@ -314,7 +315,7 @@ export class MyPlugin {
                             JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty, JQBOperator.IsNotEmpty];
                     }
 
-                    if (valueLength < 10) {
+                    if (!bday && (valueLength < 10)) {
                         // If short enough list, show as a dropdown with discrete values.
                         input = JQBInput.Select;
                         values = getPossibleValues;
@@ -447,7 +448,13 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
     }
     // TODO -  Add other operators here
 
-    var expressionStr = "(" + asRule.field + opStr + valueStr + ")";
+    var field = asRule.field;
+    if (isDateColumn(field))
+    {
+        field = "(Age(" + field + "))";
+    }
+
+    var expressionStr = "(" + field + opStr + valueStr + ")";
     return expressionStr;
 }
 
@@ -467,6 +474,12 @@ function convertToExpressionString(query: IQueryCondition | IQueryRule): string 
     } catch (e) {
         alert("Error building expression:" + e);
     }
+}
+
+// TODO - we need a better way of detecting if it's a date. 
+function isDateColumn(columnName : string) : boolean
+{
+    return columnName == "Birthday";
 }
 
 class TagValues {
