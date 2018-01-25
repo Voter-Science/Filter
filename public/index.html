@@ -69,6 +69,13 @@
     </span>
     <div id="_mainbody" class="container" style="display:none">
 
+            <div class="row">
+                    <div class="col-sm-8">
+                            <h1>QueryBuilder for Filter Expressions</h1>
+                            <p>This plugin lets you run queries against your data for analysis and creating assignments.</p>
+                    </div>
+                </div>
+
         <ul class="nav nav-tabs">
             <li class="active">
                 <a href="#queryBuilder" data-toggle="tab">Query builder</a>
@@ -77,41 +84,33 @@
                 <a href="#advance" data-toggle="tab">Advance</a>
             </li>
         </ul>
+
         <div class="row">
             <div class="col-sm-8">
                 <div class="tab-content clearfix">
 
                     <div class="tab-pane active" id="queryBuilder">
-                        <h1>QueryBuilder for Filter Expressions</h1>
-
-                        <p>This plugin lets you run queries and filters against your data.</p>
+                        <p>Create your query:</p>
 
                         <div id="builder-basic"></div>
 
                         <div class="btn-group">
                             <button id="btnResetRule" onclick="_plugin.onResetRule()" class="btn btn-warning reset" data-target="basic">Reset</button>
+                            <!--  For debugging only 
                             <button id="btnGetRule" onclick="_plugin.onGetRule()" class="btn btn-success set-json" data-target="basic">Get rules</button>
-                            <button id="btnGetContent" onclick="_plugin.onGetSheetContents()" class="btn btn-primary parse-json" data-target="basic">Run Query</button>
+                            --> 
+                            <button id="btnGetContent" onclick="_plugin.onRunQueryBuilder()" class="btn btn-primary parse-json" data-target="basic">Run Query</button>
                         </div>
                     </div>
                     <div class="tab-pane" id="advance">
-                        <h1>Query and Partition with Filter Expressions</h1>
-
-                        <p>This plugin lets you run queries against your data.</p>
-                        <p>You can also use this to partition your sheet into 'child sheets' and assign those pieces out to volunteers.
-                            (You must run the query first to enable saving)</p>
-
-                        <p>See
+                        <p>Enter a query expression directly. 
+                            See 
                             <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
+                            
 
-                        <p>Set filter:</p>
                         <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
 
-                        <button onclick="_plugin.onClickRefresh()" class="btn btn-primary">Run Query</button>
-
-                        <p>Saving the filter will create a new child sheet, which can then be assigned out to volunteers.</p>
-                        <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save</button>
-
+                        <button onclick="_plugin.onRunQueryAdvanced()" class="btn btn-primary">Run Query</button>
                     </div>
                 </div>
             </div>
@@ -134,6 +133,43 @@
             </div>
         </div>
         <h3></h3>
+
+        <div class="row" id="saveOptions">
+                <h4>What do you want to do with the query results?</h4>
+                <ul class="nav nav-tabs">
+                    <li >
+                        <a href="#act2" data-toggle="tab">Save</a>
+                    </li>
+                    <li >
+                        <a href="#act3" data-toggle="tab">Map it</a>
+                    </li>
+                    <li >
+                        <a href="#act4" data-toggle="tab">Charts</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                          <div id="act2" class="tab-pane fade">
+                            <b>Save the results </b>
+                            <button id="btnSaveTag" onclick="_plugin.onCreateNewTag()" class="btn btn-default">Create Tag</button>  <p> Create a new tag with these results</p> <p></p>                                
+                        
+                            <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save Query</button>
+                            <p>Save this filter by name. This will create a new 'child sheet', which can then be assigned out to volunteers.</p>
+                                
+                          </div>
+                          <div id="act3" class="tab-pane fade">
+                            <h3>Create a map</h3>
+                            <p>[New Map] Create a map with push pins</p>
+                            <p>[New Heat Map] Create a heat map. </p>
+                          </div>
+                          <div id="act4" class="tab-pane fade">
+                            <h3>Create charts</h3>
+                            <p>[Create] Create a histogram [by column] </p>
+                            <p>[Create] pie chart [by column]. </p>
+                          </div>
+                        </div>            
+            </div>
+
+
         <div class="row">
             <div class="panel-group">
                 <div class="panel panel-default">

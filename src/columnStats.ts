@@ -54,6 +54,17 @@ export class ColumnStats {
     public getNumberRange() : number[] { return [ this._numberMin, this._numberMax]; };
     public getPossibleValues() : string[] { return this._possibleValues; }
     
+    // Given a list of recIds (from a cached search result), get a ColumnStats for a 
+    // tag column for these recIds. 
+    public static NewTagFromRecId(recIds: string[], totalSize: number) {
+        // Build a tags array corresponding to the recIds
+        var vals : string[] = new Array(totalSize);
+        for(var i in recIds) {
+            vals[i] = '1';
+        }
+        return new ColumnStats(vals);
+    }
+
 
     public constructor(vals: string[]) {
         

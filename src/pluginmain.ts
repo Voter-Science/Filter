@@ -37,9 +37,11 @@ export class MyPlugin {
 
     // Map of ColumnName --> ColumnStats of unique values in this column
     private _columnStats: any;
-    private _rowCount: number;
+    private _rowCount: number; // Total rows
 
     private _optionFilter: any = [];
+
+    private _lastResults: QueryResults; // Results of last query 
 
     public static BrowserEntryAsync(
         auth: plugin.IStart,
@@ -52,9 +54,11 @@ export class MyPlugin {
 
         var throwError = false; // $$$ remove this
 
-        $("#btnSave").prop('disabled', true);
-
+        // $("#btnSave").prop('disabled', true);
+        
         var plugin2 = new MyPlugin(pluginClient);
+        plugin2.onChangeFilter(); // disable the Save buttons 
+
         return plugin2.InitAsync().then(() => {
             if (throwError) {
                 throw "some error";
@@ -170,14 +174,15 @@ export class MyPlugin {
                     this._columnStats = values;
 
                     this.renderColumnInfo();
-
                     this.renderQbuilderInfo();
+                }).catch( ()=> {
+                    alert("This sheet does not support querying");
                 });
             });
     }
 
     // Demonstrate receiving UI handlers
-    public onClickRefresh(): void {
+    public onRunQueryAdvanced(): void {
         var filter = $("#filter").val();
 
         this.showFilterResult(filter);
@@ -186,17 +191,19 @@ export class MyPlugin {
     // Add the result to the html log.
     private showFilterResult(filter: string): void {
         clearError();
-        // Columns must exist. verify that Address,City exist before asking for them.
-        this._sheet.getSheetContentsAsync(filter, ["RecId", "Address", "City"]).then(contents => {
-            // var count = contents["RecId"].length;
+        this.onChangeFilter();
 
+        // Columns must exist. verify that Address,City exist before asking for them.
+        this._sheet.getSheetContentsAsync(filter, ["RecId", "Address", "City", "Lat", "Long"]).then(contents => {
             var text = this.getResultString(contents);
             this.addResult(filter, text);
 
             // Don't need to alert, it shows up in the result.
+            // this._lastResults = contents;
             // alert("This query has " + count + " rows.");
 
-            $("#btnSave").prop('disabled', false); // Can now save
+            var lastResults = new QueryResults(filter, contents);
+            this.onEnableSaveOptions(lastResults);
         }).catch(showError);
     }
 
@@ -253,27 +260,75 @@ export class MyPlugin {
         //root.prepend(e1);
     }
 
-    public onChangeFilter(): void {
-        // Once we've edited the filter, must get the counts again in order to save it.
-        $("#btnSave").prop('disabled', true);
+    // Called afer a successful query. 
+    public onEnableSaveOptions(results : QueryResults): void {
+        this._lastResults = results;
+        //$("#btnSave").prop('disabled', false);
+        $("#saveOptions").show();
     }
 
+    public onChangeFilter(): void {
+        this._lastResults = null;
+        // Once we've edited the filter, must get the counts again in order to save it.
+        //$("#btnSave").prop('disabled', true);
+        $("#saveOptions").hide();
+    }
 
     public onCreateChild(): void {
         var newName = prompt("Name for sheet?");
-        var filter = $("#filter").val();
+        var filter = this._lastResults._expression;
 
         var shareSandbox: boolean = true;
         if (this._rowCount > 1000) {
             shareSandbox = false;
         }
 
+        this.pauseUI();
         this._sheet.createChildSheetFromFilterAsync(newName, filter, shareSandbox)
-            .then(() => this.getAndRenderChildrenAsync()).catch(showError);
+            .then(() => this.getAndRenderChildrenAsync()).catch(showError)
+            .then( () => this.resumeUI());
+    }
+
+    public onCreateNewTag(): void {
+        var newName = prompt("Name for new tag?");
+        var filter = this._lastResults._expression;
+
+        var recIds = this._lastResults.getRecIds();
+
+        var admin = new trcSheet.SheetAdminClient(this._sheet);
+
+        var col: any = {
+            ColumnName: newName,
+            Description: null,
+            PossibleValues: null,
+            Expression: filter // $$$ not on interface 
+        };
+        var col2: trcSheet.IMaintenanceAddColumn = col;
+        // var cols : 
+
+        this.pauseUI();
+        admin.postNewExpressionAsync(newName, filter).then(() => {
+            // Rather than have server recompute, just pull the last saved query results. 
+            this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
+            this.renderColumnInfo();            
+            this.renderQbuilderInfo();
+        }).catch(showError)
+        .then( () => this.resumeUI());
+    }
+
+    private pauseUI() : void 
+    {
+// Todo - freeze UI controls that would let you modify a query or 
+    }
+    private resumeUI() : void 
+    {
+
     }
 
     // Display sheet info on HTML page
     public renderQbuilderInfo(): void {
+
+        this._optionFilter = [];
 
         for (var columnName in this._columnStats) {
             var columnDetail = <ColumnStats>this._columnStats[columnName];
@@ -365,11 +420,28 @@ export class MyPlugin {
     }
 
     // downloading all contents and rendering them to HTML can take some time.
-    public onGetSheetContents(): void {
+    public onRunQueryBuilder(): void {
         var query = $('#builder-basic').queryBuilder('getRules');
         var filter = convertToExpressionString(query);
 
         this.showFilterResult(filter);
+    }
+} // End class Plugin 
+
+
+class QueryResults
+{
+    public _lastResults: trcSheetContents.ISheetContents; // Results of last query 
+    public _expression: string; // the filter expression used to run and get these results    
+
+    public constructor(expression : string, results : trcSheetContents.ISheetContents)
+    {
+        this._lastResults = results;
+        this._expression = expression;
+    }
+
+    public getRecIds() : string[] {
+        return this._lastResults["RecId"];
     }
 }
 
