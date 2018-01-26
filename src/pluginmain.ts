@@ -407,6 +407,7 @@ export class MyPlugin {
         $("#builder-basic").queryBuilder('reset');
     }
 
+    // Debug helper
     public onGetRule(): void {
         // Reset filter rules
         var result = $('#builder-basic').queryBuilder('getRules');
