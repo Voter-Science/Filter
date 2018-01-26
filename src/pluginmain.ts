@@ -55,7 +55,7 @@ export class MyPlugin {
         var throwError = false; // $$$ remove this
 
         // $("#btnSave").prop('disabled', true);
-        
+
         var plugin2 = new MyPlugin(pluginClient);
         plugin2.onChangeFilter(); // disable the Save buttons 
 
@@ -175,7 +175,7 @@ export class MyPlugin {
 
                     this.renderColumnInfo();
                     this.renderQbuilderInfo();
-                }).catch( ()=> {
+                }).catch(() => {
                     alert("This sheet does not support querying");
                 });
             });
@@ -261,7 +261,7 @@ export class MyPlugin {
     }
 
     // Called afer a successful query. 
-    public onEnableSaveOptions(results : QueryResults): void {
+    public onEnableSaveOptions(results: QueryResults): void {
         this._lastResults = results;
         //$("#btnSave").prop('disabled', false);
         $("#saveOptions").show();
@@ -276,7 +276,7 @@ export class MyPlugin {
 
     public onCreateChild(): void {
         var newName = prompt("Name for sheet?");
-        var filter = this._lastResults._expression;
+        var filter = this._lastResults.getExpression();
 
         var shareSandbox: boolean = true;
         if (this._rowCount > 1000) {
@@ -286,12 +286,12 @@ export class MyPlugin {
         this.pauseUI();
         this._sheet.createChildSheetFromFilterAsync(newName, filter, shareSandbox)
             .then(() => this.getAndRenderChildrenAsync()).catch(showError)
-            .then( () => this.resumeUI());
+            .then(() => this.resumeUI());
     }
 
     public onCreateNewTag(): void {
         var newName = prompt("Name for new tag?");
-        var filter = this._lastResults._expression;
+        var filter = this._lastResults.getExpression();
 
         var recIds = this._lastResults.getRecIds();
 
@@ -310,18 +310,16 @@ export class MyPlugin {
         admin.postNewExpressionAsync(newName, filter).then(() => {
             // Rather than have server recompute, just pull the last saved query results. 
             this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
-            this.renderColumnInfo();            
+            this.renderColumnInfo();
             this.renderQbuilderInfo();
         }).catch(showError)
-        .then( () => this.resumeUI());
+            .then(() => this.resumeUI());
     }
 
-    private pauseUI() : void 
-    {
-// Todo - freeze UI controls that would let you modify a query or 
+    private pauseUI(): void {
+        // Todo - freeze UI controls that would let you modify a query or 
     }
-    private resumeUI() : void 
-    {
+    private resumeUI(): void {
 
     }
 
@@ -352,8 +350,8 @@ export class MyPlugin {
                     operators = [JQBOperator.Equal];
                     values = [TagValues.True, TagValues.False];
                 }
-                else {  
-                    var bday :boolean = isDateColumn(columnName);                  
+                else {
+                    var bday: boolean = isDateColumn(columnName);
                     if (bday || columnDetail.isNumberType()) {
                         type = JQBType.Double;
                         input = JQBInput.Number;
@@ -394,7 +392,7 @@ export class MyPlugin {
         $('#builder-basic').on("change.queryBuilder", () => {
             //handle onchange event of query builder
             this.onChangeFilter();
-        }) .queryBuilder({
+        }).queryBuilder({
             //plugins: ['bt-tooltip-errors'],
 
             filters: this._optionFilter
@@ -430,19 +428,21 @@ export class MyPlugin {
 } // End class Plugin 
 
 
-class QueryResults
-{
-    public _lastResults: trcSheetContents.ISheetContents; // Results of last query 
-    public _expression: string; // the filter expression used to run and get these results    
+class QueryResults {
+    private _lastResults: trcSheetContents.ISheetContents; // Results of last query 
+    private _expression: string; // the filter expression used to run and get these results    
 
-    public constructor(expression : string, results : trcSheetContents.ISheetContents)
-    {
+    public constructor(expression: string, results: trcSheetContents.ISheetContents) {
         this._lastResults = results;
         this._expression = expression;
     }
 
-    public getRecIds() : string[] {
+    public getRecIds(): string[] {
         return this._lastResults["RecId"];
+    }
+
+    public getExpression(): string {
+        return this._expression;
     }
 }
 
@@ -522,8 +522,7 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
     // TODO -  Add other operators here
 
     var field = asRule.field;
-    if (isDateColumn(field))
-    {
+    if (isDateColumn(field)) {
         field = "(Age(" + field + "))";
     }
 
@@ -550,9 +549,8 @@ function convertToExpressionString(query: IQueryCondition | IQueryRule): string 
 }
 
 // TODO - we need a better way of detecting if it's a date. 
-function isDateColumn(columnName : string) : boolean
-{
-    return columnName == "Birthday";
+function isDateColumn(columnName: string): boolean {
+    return columnName == "Birthday" || columnName == "Birthdate";
 }
 
 class TagValues {
