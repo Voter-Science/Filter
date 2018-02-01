@@ -26,6 +26,8 @@ declare var $: any; // external definition for JQuery
 //   p.catch(showError);
 declare var clearError: () => void; // error handler defined in index.html
 declare var showError: (error: any) => void; // error handler defined in index.html
+declare var google: any;
+declare var HeatmapOverlay: any;
 
 export class MyPlugin {
     private _sheet: trcSheet.SheetClient;
@@ -41,7 +43,7 @@ export class MyPlugin {
 
     private _optionFilter: any = [];
 
-    private _lastResults: QueryResults; // Results of last query 
+    private _lastResults: QueryResults; // Results of last query
 
     public static BrowserEntryAsync(
         auth: plugin.IStart,
@@ -57,7 +59,7 @@ export class MyPlugin {
         // $("#btnSave").prop('disabled', true);
 
         var plugin2 = new MyPlugin(pluginClient);
-        plugin2.onChangeFilter(); // disable the Save buttons 
+        plugin2.onChangeFilter(); // disable the Save buttons
 
         return plugin2.InitAsync().then(() => {
             if (throwError) {
@@ -260,7 +262,7 @@ export class MyPlugin {
         //root.prepend(e1);
     }
 
-    // Called afer a successful query. 
+    // Called afer a successful query.
     public onEnableSaveOptions(results: QueryResults): void {
         this._lastResults = results;
         //$("#btnSave").prop('disabled', false);
@@ -272,6 +274,8 @@ export class MyPlugin {
         // Once we've edited the filter, must get the counts again in order to save it.
         //$("#btnSave").prop('disabled', true);
         $("#saveOptions").hide();
+        $('#map').empty().hide();
+        $('#heatmap').empty().hide();
     }
 
     public onCreateChild(): void {
@@ -301,14 +305,14 @@ export class MyPlugin {
             ColumnName: newName,
             Description: null,
             PossibleValues: null,
-            Expression: filter // $$$ not on interface 
+            Expression: filter // $$$ not on interface
         };
         var col2: trcSheet.IMaintenanceAddColumn = col;
-        // var cols : 
+        // var cols :
 
         this.pauseUI();
         admin.postNewExpressionAsync(newName, filter).then(() => {
-            // Rather than have server recompute, just pull the last saved query results. 
+            // Rather than have server recompute, just pull the last saved query results.
             this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
             this.renderColumnInfo();
             this.renderQbuilderInfo();
@@ -316,8 +320,133 @@ export class MyPlugin {
             .then(() => this.resumeUI());
     }
 
+    public onCreateMap(): void {
+        $('#heatmap').hide();
+        $("#map").show();
+
+        var lats = this._lastResults.getLats();
+        var lngs = this._lastResults.getLongs();
+        var addresses = this._lastResults.getAddresses();
+        var cities = this._lastResults.getCities();
+        var recIds = this._lastResults.getRecIds();
+
+        var map = this.createGooglemap(lats[0], lngs[0], 'map');
+
+        var infowindow = new google.maps.InfoWindow();
+
+        var marker, i;
+
+        for (i = 0; i < recIds.length; i++) {
+            marker = new google.maps.Marker({
+                position: new google.maps.LatLng(lats[i], lngs[i]),
+                map: map
+            });
+
+            var infoContent = '<div class="info_content">' +
+                    '<h3>' + recIds[i] + '</h3>' +
+                    '<p>' + addresses [i] + ', ' + cities[i] + '</p>' +
+                '</div>';
+
+            google.maps.event.addListener(marker, 'click', (function(marker, i) {
+                return function() {
+                    infowindow.setContent(infoContent);
+                    infowindow.open(map, marker);
+                }
+            })(marker, i));
+        }
+
+    }
+
+    private createGooglemap(lat: string, lng: string, containerId: string): any {
+        var myLatlng = new google.maps.LatLng(lat, lng);
+        // map options,
+        var myOptions = {
+            zoom: 14,
+            center: myLatlng
+        };
+
+        // standard map
+        var map = new google.maps.Map(document.getElementById(containerId), myOptions);
+
+        return map;
+    }
+
+    public onCreateHeatMap(): void {
+        $("#map").hide();
+        $('#heatmap').show();
+
+        var data = this.getHeatmapData();
+        this.createHeatmap(data, "heatmap");
+    }
+
+    private getHeatmapData(): any {
+
+        var lats = this._lastResults.getLats();
+        var lngs = this._lastResults.getLongs();
+
+        let count = lats.length;
+
+        var dic: any = {};
+
+        var max: number = 0;
+
+        for (let i: number = 0; i < count; i++) {
+
+            let lat = lats[i];
+            let lng = lngs[i];
+
+            let key = "".concat(lat, lng);
+            if (!key) continue;
+
+            if (!dic[key]) {
+                dic[key] = { lat: lat, lng: lng, count: 1 }
+            }
+            else {
+                dic[key]["count"]++;
+                if (dic[key]["count"] > max) { max = dic[key]["count"]; }
+            }
+        }
+
+        var keys = Object.keys(dic);
+        let dataArray = new Array();
+
+        keys.forEach(key => {
+            dataArray.push(dic[key]);
+        });
+
+        return { max: max, data: dataArray };
+    }
+
+    private createHeatmap(data: any, containerId: string): void {
+
+        var map = this.createGooglemap(data.data[0].lat, data.data[0].lng, containerId);
+
+        // heatmap layer
+        var heatmap = new HeatmapOverlay(map,
+            {
+                // radius should be small ONLY if scaleRadius is true (or small radius is intended)
+                "radius": 10,
+                "maxOpacity": .5,
+                // scales the radius based on map zoom
+                "scaleRadius": false,
+                // if set to false the heatmap uses the global maximum for colorization
+                // if activated: uses the data maximum within the current map boundaries
+                //   (there will always be a red spot with useLocalExtremas true)
+                "useLocalExtrema": true,
+                // which field name in your data represents the latitude - default "lat"
+                latField: 'lat',
+                // which field name in your data represents the longitude - default "lng"
+                lngField: 'lng',
+                // which field name in your data represents the data value - default "value"
+                valueField: 'count'
+            }
+        );
+
+        heatmap.setData(data);
+    }
+
     private pauseUI(): void {
-        // Todo - freeze UI controls that would let you modify a query or 
+        // Todo - freeze UI controls that would let you modify a query or
     }
     private resumeUI(): void {
 
@@ -425,12 +554,12 @@ export class MyPlugin {
 
         this.showFilterResult(filter);
     }
-} // End class Plugin 
+} // End class Plugin
 
 
 class QueryResults {
-    private _lastResults: trcSheetContents.ISheetContents; // Results of last query 
-    private _expression: string; // the filter expression used to run and get these results    
+    private _lastResults: trcSheetContents.ISheetContents; // Results of last query
+    private _expression: string; // the filter expression used to run and get these results
 
     public constructor(expression: string, results: trcSheetContents.ISheetContents) {
         this._lastResults = results;
@@ -443,6 +572,22 @@ class QueryResults {
 
     public getExpression(): string {
         return this._expression;
+    }
+
+    public getLats(): string[] {
+        return this._lastResults["Lat"];
+    }
+
+    public getLongs(): string[] {
+        return this._lastResults["Long"];
+    }
+
+    public getAddresses(): string[] {
+        return this._lastResults["Address"];
+    }
+
+    public getCities(): string[] {
+        return this._lastResults["City"];
     }
 }
 
@@ -548,7 +693,7 @@ function convertToExpressionString(query: IQueryCondition | IQueryRule): string 
     }
 }
 
-// TODO - we need a better way of detecting if it's a date. 
+// TODO - we need a better way of detecting if it's a date.
 function isDateColumn(columnName: string): boolean {
     return columnName == "Birthday" || columnName == "Birthdate";
 }
