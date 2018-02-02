@@ -317,27 +317,143 @@
             <div class="col-sm-8">
                 <div class="tab-content clearfix">
 
-                    <div class="tab-pane active" id="queryBuilder">
+                    <div class="tab-pane active filter-input" id="queryBuilder">
                         <p>Create your query:</p>
 
                         <div id="builder-basic"></div>
 
                         <div class="btn-group">
-                            <button id="btnResetRule" onclick="_plugin.onResetRule()" class="btn btn-warning reset" data-target="basic">Reset</button>
+                            <button id="btnResetRule" onclick="_plugin.onResetRule()" class="btn btn-warning reset btn-show" data-target="basic">Reset</button>
                             <!--  For debugging only
                             <button id="btnGetRule" onclick="_plugin.onGetRule()" class="btn btn-success set-json" data-target="basic">Get rules</button>
                             -->
-                            <button id="btnGetContent" onclick="_plugin.onRunQueryBuilder()" class="btn btn-primary parse-json" data-target="basic">Run Query</button>
+                            <button id="btnGetContent" onclick="_plugin.onRunQueryBuilder()" class="btn btn-primary parse-json btn-show" data-target="basic">Run Query</button>
                         </div>
                     </div>
-                    <div class="tab-pane" id="advance">
+                    <div class="tab-pane filter-input" id="advance">
                         <p>Enter a query expression directly. See
                             <a href="https://github.com/Voter-Science/TrcLibNpm/wiki/Expressions">expression reference</a> for details on expressions.</p>
 
 
                         <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
 
-                        <button onclick="_plugin.onRunQueryAdvanced()" class="btn btn-primary">Run Query</button>
+                        <button onclick="_plugin.onRunQueryAdvanced()" class="btn btn-primary btn-show">Run Query</button>
+                    </div>
+                </div>
+                <h3></h3>
+
+                <div id="saveOptions">
+                    <h4>What do you want to do with the query results?</h4>
+                    <ul class="nav nav-tabs">
+                        <li>
+                            <a href="#act2" data-toggle="tab">Save</a>
+                        </li>
+                        <li>
+                            <a href="#act3" data-toggle="tab">Map it</a>
+                        </li>
+                        <li>
+                            <a href="#act4" data-toggle="tab">Charts</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+
+                        <div id="act2" class="tab-pane fade">
+
+                            <b>Save the results </b>
+
+                            <table>
+                                <tr>
+                                    <td>
+                                        <button id="btnSaveTag" onclick="_plugin.onCreateNewTag()" class="btn btn-default">Create Tag</button>
+                                    </td>
+                                    <td>Create a new tag with these results</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save Query</button>
+                                    </td>
+                                    <td>
+                                        <p>Save this filter by name. This will create a new 'child sheet', which can then be assigned
+                                            out to volunteers.</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </div>
+
+                        <div id="act3" class="tab-pane fade">
+                            <div>
+                                <h3>Create a map</h3>
+                                <table>
+                                    <tr>
+                                        <td>
+                                            <button id="btnMap" onclick="_plugin.onCreateMap()" class="btn btn-default">New Map</button>
+                                        </td>
+                                        <td>Create a map with push pins.</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <button id="btnHeatMap" onclick="_plugin.onCreateHeatMap()" class="btn btn-default">New Heat Map</button>
+                                        </td>
+                                        <td>
+                                            <p>Create a heat map.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-sm-12" id="map" style="width:100%; height:500px; display:none; margin-top:10px; margin-bottom:10px;"></div>
+
+                            <div class="heatmap" id="heatmap" style="width:100%; height:500px; display:none; margin-top:10px; margin-bottom:10px;"></div>
+                        </div>
+
+                        <div id="act4" class="tab-pane fade">
+
+                            <h3>Create charts</h3>
+
+                            <p>[Create] Create a histogram [by column] </p>
+
+                            <p>[Create] pie chart [by column]. </p>
+                        </div>
+                    </div>
+                </div>
+                <p> --------------------  </p>
+
+                <div class="panel-group">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" href="#existing-columns">Existing columns</a>
+                            </h4>
+                        </div>
+                        <div id="existing-columns" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <table>
+                                    <tr>
+                                        <td>Total Rows:</td>
+                                        <td>
+                                            <div id="RowCount"></div>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <p>These are existing columns you can use in the query:</p>
+                                <div id="contents"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-group">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a data-toggle="collapse" href="#existing-filters">Existing Filters</a>
+                            </h4>
+                        </div>
+                        <div id="existing-filters" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <p>These are existing filters (aka 'child sheets') for this sheet.</p>
+                                <div id="existingfilters"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -357,127 +473,6 @@
 
                     </tbody>
                 </table>
-            </div>
-        </div>
-        <h3></h3>
-
-        <div class="row" id="saveOptions">
-            <h4>What do you want to do with the query results?</h4>
-            <ul class="nav nav-tabs">
-                <li>
-                    <a href="#act2" data-toggle="tab">Save</a>
-                </li>
-                <li>
-                    <a href="#act3" data-toggle="tab">Map it</a>
-                </li>
-                <li>
-                    <a href="#act4" data-toggle="tab">Charts</a>
-                </li>
-            </ul>
-            <div class="tab-content">
-
-                <div id="act2" class="tab-pane fade">
-
-                    <b>Save the results </b>
-
-                    <table>
-                        <tr>
-                            <td>
-                                <button id="btnSaveTag" onclick="_plugin.onCreateNewTag()" class="btn btn-default">Create Tag</button>
-                            </td>
-                            <td>Create a new tag with these results</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save Query</button>
-                            </td>
-                            <td>
-                                <p>Save this filter by name. This will create a new 'child sheet', which can then be assigned
-                                    out to volunteers.</p>
-                            </td>
-                        </tr>
-                    </table>
-
-                    </div>
-
-                <div id="act3" class="tab-pane fade">
-                    <div>
-                        <h3>Create a map</h3>
-                        <table>
-                            <tr>
-                                <td>
-                                    <button id="btnMap" onclick="_plugin.onCreateMap()" class="btn btn-default">New Map</button>
-                                </td>
-                                <td>Create a map with push pins.</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <button id="btnHeatMap" onclick="_plugin.onCreateHeatMap()" class="btn btn-default">New Heat Map</button>
-                                </td>
-                                <td>
-                                    <p>Create a heat map.</p>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    <div class="col-sm-12" id="map" style="width:100%; height:500px; display:none; margin-top:10px; margin-bottom:10px;"></div>
-
-                    <div class="heatmap" id="heatmap" style="width:100%; height:500px; display:none; margin-top:10px; margin-bottom:10px;"></div>
-                </div>
-
-                <div id="act4" class="tab-pane fade">
-
-                    <h3>Create charts</h3>
-
-                    <p>[Create] Create a histogram [by column] </p>
-
-                    <p>[Create] pie chart [by column]. </p>
-                    </div>
-            </div>
-        </div>
-
-        <p> --------------------  </p>
-
-        <div class="row">
-            <div class="panel-group">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">
-                            <a data-toggle="collapse" href="#existing-columns">Existing columns</a>
-                        </h4>
-                    </div>
-                    <div id="existing-columns" class="panel-collapse collapse">
-                        <div class="panel-body">
-                            <table>
-                                <tr>
-                                    <td>Total Rows:</td>
-                                    <td>
-                                        <div id="RowCount"></div>
-                                    </td>
-                                </tr>
-                            </table>
-                            <p>These are existing columns you can use in the query:</p>
-                            <div id="contents"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="panel-group">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">
-                            <a data-toggle="collapse" href="#existing-filters">Existing Filters</a>
-                        </h4>
-                    </div>
-                    <div id="existing-filters" class="panel-collapse collapse">
-                        <div class="panel-body">
-                            <p>These are existing filters (aka 'child sheets') for this sheet.</p>
-                            <div id="existingfilters"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
