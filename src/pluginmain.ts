@@ -195,6 +195,7 @@ export class MyPlugin {
         clearError();
         this.onChangeFilter();
 
+        this.pauseUI();
         // Columns must exist. verify that Address,City exist before asking for them.
         this._sheet.getSheetContentsAsync(filter, ["RecId", "Address", "City", "Lat", "Long"]).then(contents => {
             var text = this.getResultString(contents);
@@ -206,7 +207,8 @@ export class MyPlugin {
 
             var lastResults = new QueryResults(filter, contents);
             this.onEnableSaveOptions(lastResults);
-        }).catch(showError);
+        }).catch(showError)
+        .then(() => this.resumeUI());
     }
 
     // Given query results, scan it and convert to a string.
@@ -265,14 +267,12 @@ export class MyPlugin {
     // Called afer a successful query.
     public onEnableSaveOptions(results: QueryResults): void {
         this._lastResults = results;
-        //$("#btnSave").prop('disabled', false);
         $("#saveOptions").show();
     }
 
     public onChangeFilter(): void {
         this._lastResults = null;
         // Once we've edited the filter, must get the counts again in order to save it.
-        //$("#btnSave").prop('disabled', true);
         $("#saveOptions").hide();
         $('#map').empty().hide();
         $('#heatmap').empty().hide();
@@ -446,10 +446,13 @@ export class MyPlugin {
     }
 
     private pauseUI(): void {
-        // Todo - freeze UI controls that would let you modify a query or
+        // freeze UI controls that would let you modify a query
+        //disable filter inputs
+        $('.filter-input').find('input, textarea, button, select').prop('disabled', true);
     }
     private resumeUI(): void {
-
+        //resume filter inputs
+        $('.filter-input').find('input, textarea, button, select').prop('disabled', false);
     }
 
     // Display sheet info on HTML page
