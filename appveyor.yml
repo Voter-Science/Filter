@@ -8,8 +8,7 @@ install:
   - ps: Install-Product node $env:nodejs_version
   # install modules
   - npm install
-  - npm run build
-
+  
 # Post-install test scripts.
 test_script:
   # Output useful info for debugging.
@@ -23,4 +22,6 @@ artifacts:
     name: TrcDeploy
 
 # Don't actually build.
-build: off
+# build: off
+build_script:
+- npm run build
