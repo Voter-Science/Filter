@@ -20,7 +20,7 @@ test_script:
 
 artifacts:
   - path: public
-  name: Deploy to TRC
+    name: Deploy to TRC
 
 # Don't actually build.
 build: off
