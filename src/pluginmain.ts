@@ -286,7 +286,7 @@ export class MyPlugin {
         if (this._rowCount > 1000) {
             shareSandbox = false;
         }
-x
+
         this.pauseUI();
         this._sheet.createChildSheetFromFilterAsync(newName, filter, shareSandbox)
             .then(() => this.getAndRenderChildrenAsync()).catch(showError)
