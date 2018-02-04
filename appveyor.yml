@@ -18,5 +18,9 @@ test_script:
   # run tests
   #- npm test
 
+artifacts:
+  - path: public
+  name: Deploy to TRC
+
 # Don't actually build.
 build: off
