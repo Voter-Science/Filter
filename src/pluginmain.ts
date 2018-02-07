@@ -333,12 +333,14 @@ export class MyPlugin {
         var map = this.createGooglemap(lats[0], lngs[0], 'map');
 
         var infowindow = new google.maps.InfoWindow();
+        var bounds  = new google.maps.LatLngBounds();
 
         var marker, i;
 
         for (i = 0; i < recIds.length; i++) {
+            var latLng = new google.maps.LatLng(lats[i], lngs[i])
             marker = new google.maps.Marker({
-                position: new google.maps.LatLng(lats[i], lngs[i]),
+                position: latLng,
                 map: map
             });
 
@@ -353,8 +355,10 @@ export class MyPlugin {
                     infowindow.open(map, marker);
                 }
             })(marker, i));
+            bounds.extend(latLng);
         }
-
+        map.fitBounds(bounds);       // auto-zoom
+        map.panToBounds(bounds);
     }
 
     private createGooglemap(lat: string, lng: string, containerId: string): any {

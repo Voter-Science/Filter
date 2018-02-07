@@ -196,6 +196,7 @@
     var data = data.data;
     var len = data.length;
     var d = [];
+    var bounds  = new gmaps.LatLngBounds();
     while (len--) {
       var entry = data[len];
       var latlng = new gmaps.LatLng(entry[latField], entry[lngField]);
@@ -205,7 +206,10 @@
         dataObj.radius = entry.radius;
       }
       d.push(dataObj);
+      bounds.extend(latlng);
     }
+    this.map.fitBounds(bounds);       // auto-zoom
+    this.map.panToBounds(bounds);
     this.data = d;
     this.update();
   };
