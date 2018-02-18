@@ -43,7 +43,6 @@ export class ColumnStats {
     private _isNumber : boolean; 
     private _numberMin : number;
     private _numberMax : number;
-
     
     public isTagType() : boolean { return this._isTagType };
     public isNumberType() : boolean { return this._isNumber; };
@@ -63,6 +62,11 @@ export class ColumnStats {
             vals[i] = '1';
         }
         return new ColumnStats(vals);
+    }
+
+    // Create a column stat representing a list of polygon options 
+    public static NewFromPolygonList(names : string[]) {
+        return new ColumnStats(names);
     }
 
 

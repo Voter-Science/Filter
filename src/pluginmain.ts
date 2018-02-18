@@ -13,6 +13,7 @@ import * as core from 'trc-core/core'
 
 import * as trcSheet from 'trc-sheet/sheet'
 import * as trcSheetContents from 'trc-sheet/sheetContents'
+import * as trcPoly from 'trc-sheet/polygonHelper';
 import * as trcSheetEx from 'trc-sheet/sheetEx'
 
 import * as plugin from 'trc-web/plugin'
@@ -29,10 +30,14 @@ declare var showError: (error: any) => void; // error handler defined in index.h
 declare var google: any;
 declare var HeatmapOverlay: any;
 
+// We create a "virtual column" for the polyons defined in this sheet. 
+const PolygonColumnName : string = "$IsInPolygon";
+
 export class MyPlugin {
     private _sheet: trcSheet.SheetClient;
     private _pluginClient: plugin.PluginClient;
     private _gps: common.IGeoPointProvider;
+    private _polyHelper: trcPoly.PolygonHelper;
 
     // Used to give each result a unique HTML id.
     private _outputCounter: number = 0;
@@ -73,6 +78,7 @@ export class MyPlugin {
     // Expose constructor directly for tests. They can pass in mock versions.
     public constructor(p: plugin.PluginClient) {
         this._sheet = new trcSheet.SheetClient(p.HttpClient, p.SheetId);
+        this._polyHelper = new trcPoly.PolygonHelper(this._sheet);
     }
 
 
@@ -158,28 +164,59 @@ export class MyPlugin {
         });
     };
 
+    // Map of polygon names (which are used in the query UX) to 
+    // a dataId (which is used in the query expression)
+    private _polyName2IdMap: any = {};
+    public static LatestPolyMap: any; // expose the map outside this class. 
+
     // Collect stats on sheets. Namely which columns, and possible values.
     private getStats(): Promise<void> {
         var values: any = {};
 
         return this.getAndRenderChildrenAsync()
             .then(() => {
-                this._sheet.getSheetContentsAsync().then((contents) => {
+                return this._sheet.listCustomDataAsync(trcSheet.PolygonKind).then(
+                    (iter) => {
+                        var polyNames: string[] = [];
+                        this._polyName2IdMap = null;
 
-                    for (var columnName in contents) {
-                        var vals = contents[columnName];
+                        return iter.ForEach((item) => {
+                            var dataId = item.DataId; // unique for API
+                            var name = item.Name; // friendly version 
 
-                        var stats = new ColumnStats(vals);
+                            if (this._polyName2IdMap == null) {
+                                this._polyName2IdMap = {};
+                            }
+                            polyNames.push(name);
+                            this._polyName2IdMap[name] = dataId;
 
-                        values[columnName] = stats;
-                    }
-                    this._columnStats = values;
+                        }).then(() => {
+                            if (this._polyName2IdMap != null) {
+                                // We have polygon data
+                                MyPlugin.LatestPolyMap = this._polyName2IdMap;
 
-                    this.renderColumnInfo();
-                    this.renderQbuilderInfo();
-                }).catch(() => {
-                    alert("This sheet does not support querying");
-                });
+                                var stats = ColumnStats.NewFromPolygonList(polyNames);
+                                values[PolygonColumnName] = stats;
+                            }
+
+                            return this._sheet.getSheetContentsAsync().then((contents) => {
+
+                                for (var columnName in contents) {
+                                    var vals = contents[columnName];
+
+                                    var stats = new ColumnStats(vals);
+
+                                    values[columnName] = stats;
+                                }
+                                this._columnStats = values;
+
+                                this.renderColumnInfo();
+                                this.renderQbuilderInfo();
+                            }).catch(() => {
+                                alert("This sheet does not support querying");
+                            });
+                        });
+                    });
             });
     }
 
@@ -208,7 +245,7 @@ export class MyPlugin {
             var lastResults = new QueryResults(filter, contents);
             this.onEnableSaveOptions(lastResults);
         }).catch(showError)
-        .then(() => this.resumeUI());
+            .then(() => this.resumeUI());
     }
 
     // Given query results, scan it and convert to a string.
@@ -333,7 +370,7 @@ export class MyPlugin {
         var map = this.createGooglemap(lats[0], lngs[0], 'map');
 
         var infowindow = new google.maps.InfoWindow();
-        var bounds  = new google.maps.LatLngBounds();
+        var bounds = new google.maps.LatLngBounds();
 
         var marker, i;
 
@@ -345,12 +382,12 @@ export class MyPlugin {
             });
 
             var infoContent = '<div class="info_content">' +
-                    '<h3>' + recIds[i] + '</h3>' +
-                    '<p>' + addresses [i] + ', ' + cities[i] + '</p>' +
+                '<h3>' + recIds[i] + '</h3>' +
+                '<p>' + addresses[i] + ', ' + cities[i] + '</p>' +
                 '</div>';
 
-            google.maps.event.addListener(marker, 'click', (function(marker, i) {
-                return function() {
+            google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                return function () {
                     infowindow.setContent(infoContent);
                     infowindow.open(map, marker);
                 }
@@ -504,7 +541,16 @@ export class MyPlugin {
                             JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty, JQBOperator.IsNotEmpty];
                     }
 
-                    if (!bday && (valueLength < 10)) {
+                    if (columnName == PolygonColumnName)
+                    {
+                        // This represents the polygons. 
+                        // Polygon comparison is either in or out. 
+                        operators = [
+                            JQBOperator.Equal, JQBOperator.NotEqual
+                            ];
+                    }
+
+                    if (!bday && (valueLength < 30)) {
                         // If short enough list, show as a dropdown with discrete values.
                         input = JQBInput.Select;
                         values = getPossibleValues;
@@ -652,6 +698,26 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
         valueStr = asRule.value;
     } else {
         throw "Unhandled value type: " + asRule.type;
+    }
+
+    // Polygons
+    if (asRule.field == PolygonColumnName) {
+        // Convert Name to DataId. 
+        var dataName = asRule.value;
+        var dataId = MyPlugin.LatestPolyMap[dataName];
+        if (!dataId) {
+            return "false";
+        }
+        else {
+            var opStr :string;
+            if (asRule.operator == JQBOperator.Equal) {
+                opStr = "";
+            } else if (asRule.operator == JQBOperator.NotEqual) {
+                opStr = "!";
+            }
+
+            return "(" + opStr + "IsInPolygon('" + dataId + "',Lat,Long))";
+        }
     }
 
     // TODO - check isString, isNumber, etc and make sure operator is supported
