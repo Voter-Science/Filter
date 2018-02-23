@@ -620,7 +620,8 @@ export class MyPlugin {
         }).queryBuilder({
             //plugins: ['bt-tooltip-errors'],
 
-            filters: this._optionFilter
+            filters: this._optionFilter,
+            sort_filters: true
 
         });
     }
@@ -856,7 +857,7 @@ export class MyPlugin {
         for (var i = 0; i < this._optionFilter.length; i++) {
             var key = this._optionFilter[i];
 
-            if (key.id == "$IsInPolygon") {
+            if (key.id == PolygonColumnName) {
                 let nextKey = key.values.length;
                 key.values[nextKey] = walklistName
 
@@ -864,7 +865,19 @@ export class MyPlugin {
             }
             break;
         }
-        $('#builder-basic').queryBuilder('setFilters', this._optionFilter);
+        var builder = $('#builder-basic');
+        builder.queryBuilder('setFilters', this._optionFilter);
+
+        var rule = builder.queryBuilder('getRules');
+
+        var newRule = {
+            id: PolygonColumnName,
+            operator: 'equal',
+            value: walklistName
+        };
+
+        rule.rules.push(newRule);
+        builder.queryBuilder('setRules', rule);
 
         MyPlugin.LatestPolyMap[walklistName] = dataId;
     }
