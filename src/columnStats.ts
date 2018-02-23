@@ -1,31 +1,30 @@
 
 
-interface IPossibleValues
-{
-    values : string[];
-    valuesWithFrqeuency : string[];
+interface IPossibleValues {
+    values: string[];
+    valuesWithFrqeuency: string[];
 }
 
 // https://stackoverflow.com/questions/3579486/sort-a-javascript-array-by-frequency-and-then-filter-repeats
 // Return array with duplicates removed and sorted by frequency. 
-function sortByFrequency(array : string[]) : string[]{
-    var frequency : any= {};
+function sortByFrequency(array: string[]): string[] {
+    var frequency: any = {};
 
-    array.forEach(function(value) { frequency[value] = 0; });
+    array.forEach(function (value) { frequency[value] = 0; });
 
-    var uniques = array.filter(function(value) {
+    var uniques = array.filter(function (value) {
         return ++frequency[value] == 1;
     });
 
-    var x = uniques.sort(function(a, b) {
+    var x = uniques.sort(function (a, b) {
         return frequency[b] - frequency[a];
     });
 
     // append frequency 
-    for(var i in x) {
+    for (var i in x) {
         var val = x[i];
         var freq = frequency[val];
-        x[i] = val +" (x" + freq +")";
+        x[i] = val + " (x" + freq + ")";
     }
     return x;
 }
@@ -35,67 +34,73 @@ function sortByFrequency(array : string[]) : string[]{
 export class ColumnStats {
     private _uniques: Array<string>; // array of unique values in this column 
     private _possibleValues: Array<string>; // non-blank, unique values, alpha betically sorted 
-    private _numBlanks : number = 0;  // number of blank elements in this column. 
-    private _isTagType : boolean; // true if this column is a tag. 
+    private _numBlanks: number = 0;  // number of blank elements in this column. 
+    private _isTagType: boolean; // true if this column is a tag. 
 
-    private _isDate : boolean;
+    private _isDate: boolean;
 
-    private _isNumber : boolean; 
-    private _numberMin : number;
-    private _numberMax : number;
-    
-    public isTagType() : boolean { return this._isTagType };
-    public isNumberType() : boolean { return this._isNumber; };
+    private _isNumber: boolean;
+    private _numberMin: number;
+    private _numberMax: number;
 
-    public hasBlanks() : boolean { return this._numBlanks > 0; }
+    public isTagType(): boolean { return this._isTagType };
+    public isNumberType(): boolean { return this._isNumber; };
+
+    public hasBlanks(): boolean { return this._numBlanks > 0; }
 
     // Only valid if IsNumberType
-    public getNumberRange() : number[] { return [ this._numberMin, this._numberMax]; };
-    public getPossibleValues() : string[] { return this._possibleValues; }
-    
+    public getNumberRange(): number[] { return [this._numberMin, this._numberMax]; };
+    public getPossibleValues(): string[] { return this._possibleValues; }
+
     // Given a list of recIds (from a cached search result), get a ColumnStats for a 
     // tag column for these recIds. 
     public static NewTagFromRecId(recIds: string[], totalSize: number) {
         // Build a tags array corresponding to the recIds
-        var vals : string[] = new Array(totalSize);
-        for(var i in recIds) {
+        var vals: string[] = new Array(totalSize);
+        for (var i in recIds) {
             vals[i] = '1';
         }
         return new ColumnStats(vals);
     }
 
     // Create a column stat representing a list of polygon options 
-    public static NewFromPolygonList(names : string[]) {
+    public static NewFromPolygonList(names: string[]) {
         return new ColumnStats(names);
     }
 
 
     public constructor(vals: string[]) {
-        
-        var nonBlank : string[] = []
+
+        var nonBlank: string[] = []
 
         this._possibleValues = []; // empty 
 
         // Really should get this from metadata instead. 
         var isTagType = true; // Tag is either Blank or '1'
         this._isNumber = true;
-        
-        for(var i in vals)
-        {
+
+        for (var i in vals) {
             var val = vals[i];
             if (!val || val.length == 0) {
                 this._numBlanks++;
             } else {
                 this._possibleValues.push(val);
-                if (val != "1" && val != "0")
-                {
+                if (val != "1" && val != "0") {
                     isTagType = false;
                 }
 
-                // Check int? 
-                if (!isNaN(<any> val))
-                {
-                    var num = parseFloat(val);
+                // Handle percentage (15.1%),  decimal (15.1), integer (15), or blank. 
+
+                // ParseFloat will read up to first non decimal char.
+                var num: number;
+
+                if (val[val.length - 1] == '%') {
+                    num = parseFloat(val) / 100.0;
+                } else if (!isNaN(<any>val)) {
+                    num = parseFloat(val);
+                }
+
+                if (!!num) {
                     if (this._numberMin) {
                         if (num < this._numberMin) {
                             this._numberMin = num;
@@ -105,7 +110,7 @@ export class ColumnStats {
                     }
                     if (this._numberMax) {
                         if (num > this._numberMax) {
-                            this._numberMax  = num;
+                            this._numberMax = num;
                         }
                     } else {
                         this._numberMax = num;
@@ -117,14 +122,12 @@ export class ColumnStats {
                 nonBlank.push(val);
             }
         }
-        if (this._numBlanks == 0 || this._numBlanks == vals.length)
-        {
+        if (this._numBlanks == 0 || this._numBlanks == vals.length) {
             isTagType = false; // Must have at least one occurence of the tag .
         }
         this._isTagType = isTagType;
 
-        if (this._isTagType || !this._numberMin) 
-        {
+        if (this._isTagType || !this._numberMin) {
             this._isNumber = false; // tag takes precedence 
         }
 
@@ -143,8 +146,8 @@ export class ColumnStats {
             var yes = totalSize - no; // items with tag
 
             var yesPercent = Math.floor(yes * 1000 / totalSize) / 10; // 1 decimal place
-            return "(tag) " + yes + " (" + yesPercent + "%) rows tagged"; 
-            
+            return "(tag) " + yes + " (" + yesPercent + "%) rows tagged";
+
         }
 
         if (numBlank == totalSize) {
@@ -161,8 +164,7 @@ export class ColumnStats {
             if (this._isNumber) {
                 return "Number in range (" + this._numberMin + "," + this._numberMax + ")";
             }
-            else 
-            {
+            else {
                 text = this._uniques.length + " total unique values";
             }
         } else {
