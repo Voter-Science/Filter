@@ -880,6 +880,8 @@ export class MyPlugin {
         builder.queryBuilder('setRules', rule);
 
         MyPlugin.LatestPolyMap[walklistName] = dataId;
+
+        $('#btnGetContent').click();
     }
 
     // Helper to get the center of a polygon. Useful for adding a label.
