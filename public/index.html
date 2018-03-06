@@ -317,6 +317,9 @@
             <li>
                 <a href="#advance" data-toggle="tab">Advance</a>
             </li>
+            <li>
+                <a href="#basic" data-toggle="tab">Basic</a>
+            </li>
         </ul>
 
         <div class="row">
@@ -344,6 +347,37 @@
                         <input id="filter" size="80" onchange="_plugin.onChangeFilter()"></input>
 
                         <button onclick="_plugin.onRunQueryAdvanced()" class="btn btn-primary btn-show">Run Query</button>
+                    </div>
+                    <div class="tab-pane filter-input" id="basic">
+                        <div class="panel-group">
+
+                            <div class="panel panel-default">
+                                <div class="panel-body">
+                                    <p>Only includes history scores in this range:</p>
+
+                                    <input id="minHistoryScore" size="20" value="0">%</input>
+                                    <= Voter History <=
+                                    <input id="maxHistoryScore" size="20" value="100">%</input>
+                                </div>
+                            </div>
+                            <div class="panel panel-default">
+                                <div class="panel-body">
+                                    <p>AND Only include these party Ids:</p>
+                                    <div id="partyList"></div>
+                                </div>
+                            </div>
+                            <div class="panel panel-default">
+                                <div class="panel-body">
+
+                                    <p>And include in this age range (ignored if 0 or blank):</p>
+                                    <input id="minAge" size="20" value="0"></input>
+                                    <= Age <=
+                                    <input id="maxAge" size="20" value="200"></input>
+                                </div>
+                            </div>
+
+                            <button onclick="_plugin.onRunQueryBasic()" class="btn btn-primary btn-show">Apply Filter</button>
+                        </div>
                     </div>
                 </div>
                 <h3></h3>
