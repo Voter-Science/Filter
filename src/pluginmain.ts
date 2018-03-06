@@ -260,7 +260,6 @@ export class MyPlugin {
     // Demonstrate receiving UI handlers
     public onRunQueryAdvanced(): void {
         var filter = $("#filter").val();
-
         this.showFilterResult(filter);
     }
 
@@ -385,13 +384,13 @@ export class MyPlugin {
         // var cols :
 
         this.pauseUI();
-        admin.postNewExpressionAsync(newName, filter).then(() => {
+        //admin.postNewExpressionAsync(newName, filter).then(() => {
             // Rather than have server recompute, just pull the last saved query results.
             this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
             this.renderColumnInfo();
             this.renderQbuilderInfo();
-        }).catch(showError)
-            .then(() => this.resumeUI());
+        /*}).catch(showError)
+            .then(() => this.resumeUI());*/
     }
 
     public onCreateMap(): void {
@@ -599,6 +598,16 @@ export class MyPlugin {
                         // If short enough list, show as a dropdown with discrete values.
                         input = JQBInput.Select;
                         values = getPossibleValues;
+
+                        if (columnName == 'Party') {
+                            var options:string = "";
+
+                            getPossibleValues.forEach(key => {
+                                options += '<input class="party-list" type="checkbox" name="vehicle" value="'+key+'"> '+key+'<br>';
+                            });
+                            $('#partyList').html(options);
+                        }
+
                     }
                 }
 
@@ -1032,6 +1041,39 @@ export class MyPlugin {
                 total++;
             });
         return total;
+    }
+
+    public onRunQueryBasic(): void {
+        var filter: string;
+        var minHistoryScore = $('#minHistoryScore').val();
+        var maxHistoryScore = $('#maxHistoryScore').val();
+        var minAge = $('#minAge').val();
+        var maxAge = $('#maxAge').val();
+        var partyValues: string[] = [];
+
+        $('input:checkbox:checked').map(function () {
+            partyValues.push(this.value);
+        }).get();
+
+        filter = "(";
+        filter += minHistoryScore ? minHistoryScore : 0;
+        filter += "% <= history <= ";
+        filter += maxHistoryScore ? maxHistoryScore : 100;
+        filter += "%) && ";
+
+        if (partyValues.length > 0) {
+            filter += "(party == [";
+            filter += partyValues;
+            filter += "]) && ";
+        }
+
+        filter += "(";
+        filter += minAge ? minAge : 0
+        filter += " <= Age(Birthday) <= ";
+        filter += maxAge ? maxAge : 200;
+        filter += ")";
+
+        this.showFilterResult(filter);
     }
 
 } // End class Plugin
