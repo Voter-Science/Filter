@@ -384,13 +384,13 @@ export class MyPlugin {
         // var cols :
 
         this.pauseUI();
-        //admin.postNewExpressionAsync(newName, filter).then(() => {
+        admin.postNewExpressionAsync(newName, filter).then(() => {
             // Rather than have server recompute, just pull the last saved query results.
             this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
             this.renderColumnInfo();
             this.renderQbuilderInfo();
-        /*}).catch(showError)
-            .then(() => this.resumeUI());*/
+        }).catch(showError)
+            .then(() => this.resumeUI());
     }
 
     public onCreateMap(): void {
