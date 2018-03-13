@@ -122,10 +122,9 @@ export class MyPlugin {
     // Make initial network calls to setup the plugin.
     // Need this as a separate call from the ctor since ctors aren't async.
     private InitAsync(): Promise<void> {
-        return this.getStats().then(() => {
-            return this._sheet.getInfoAsync().then(info => {
-                this.updateInfo(info);
-            });
+        return this._sheet.getInfoAsync().then(info => {
+            this.updateInfo(info);
+            return this.getStats();
         });
     }
 
