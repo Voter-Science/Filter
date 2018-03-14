@@ -884,7 +884,7 @@ export class MyPlugin {
 
         var newRule = {
             id: PolygonColumnName,
-            operator: 'equal',
+            operator: JQBOperator.Equal,
             value: walklistName
         };
 
