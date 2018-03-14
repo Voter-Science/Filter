@@ -1157,7 +1157,8 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
     var isNumber: boolean = false;
 
     if (asRule.type == JQBType.Boolean) {
-        if (asRule.value == TagValues.True) {
+        if (asRule.value == TagValues.True ||
+            (<any>asRule.value) == true) {
             return "(IsTrue(" + asRule.field + "))";
         } else {
             return "(IsFalse(" + asRule.field + "))";
