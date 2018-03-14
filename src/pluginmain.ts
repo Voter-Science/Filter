@@ -386,8 +386,12 @@ export class MyPlugin {
         admin.postNewExpressionAsync(newName, filter).then(() => {
             // Rather than have server recompute, just pull the last saved query results.
             this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
-            this.renderColumnInfo();
+
+            var rules = $('#builder-basic').queryBuilder('getRules');
+            $('#builder-basic').queryBuilder('destroy');
             this.renderQbuilderInfo();
+            $('#builder-basic').queryBuilder('setRules', rules);
+
         }).catch(showError)
             .then(() => this.resumeUI());
     }
