@@ -1135,14 +1135,24 @@ function convertConditionToExpressionString(asQuery: IQueryCondition): string {
     return expressionStr;
 }
 
+function id2(name : string ) : string {
+    var x : any = name[0]; // first char 
+    if (isNaN(x)) {
+        return name;
+    }
+
+    return "@"+ name;
+}
+
 function convertRuleToExpressionString(asRule: IQueryRule): string {
     // Unary operators don't have a value
     // "is_empty", "is_not_empty"
+    var fieldId = id2(asRule.field);
     if (asRule.operator == JQBOperator.IsEmpty) {
-        return "IsBlank(" + asRule.field + ")";
+        return "IsBlank(" + fieldId + ")";
     }
     if (asRule.operator == JQBOperator.IsNotEmpty) {
-        return "(!IsBlank(" + asRule.field + "))";
+        return "(!IsBlank(" + fieldId + "))";
     }
 
     // We have a binary operator.
@@ -1155,9 +1165,9 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
     if (asRule.type == JQBType.Boolean) {
         if (asRule.value == TagValues.True ||
             (<any>asRule.value) == true) {
-            return "(IsTrue(" + asRule.field + "))";
+            return "(IsTrue(" + fieldId + "))";
         } else {
-            return "(IsFalse(" + asRule.field + "))";
+            return "(IsFalse(" + fieldId + "))";
         }
     } else if (asRule.type == JQBType.String) {
         isString = true;
@@ -1170,7 +1180,7 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
     }
 
     // Polygons
-    if (asRule.field == PolygonColumnName) {
+    if (fieldId == PolygonColumnName) {
         // Convert Name to DataId.
         var dataName = asRule.value;
         var dataId = MyPlugin.LatestPolyMap[dataName];
@@ -1208,7 +1218,7 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
     }
     // TODO -  Add other operators here
 
-    var field = asRule.field;
+    var field = fieldId;
     if (isDateColumn(field)) {
         field = "(Age(" + field + "))";
     }
