@@ -13,6 +13,7 @@ import * as core from 'trc-core/core'
 
 import * as trcSheet from 'trc-sheet/sheet'
 import * as trcSheetContents from 'trc-sheet/sheetContents'
+import {ColumnNames} from 'trc-sheet/sheetContents'
 import * as trcPoly from 'trc-sheet/polygonHelper';
 import * as trcSheetEx from 'trc-sheet/sheetEx'
 
@@ -269,7 +270,7 @@ export class MyPlugin {
 
         this.pauseUI();
         // Columns must exist. verify that Address,City exist before asking for them.
-        this._sheet.getSheetContentsAsync(filter, ["RecId", "Address", "City", "Lat", "Long"]).then(contents => {
+        this._sheet.getSheetContentsAsync(filter, [ColumnNames.RecId, ColumnNames.Address, ColumnNames.City, ColumnNames.Lat, ColumnNames.Long]).then(contents => {
             var text = this.getResultString(contents);
             this.addResult(filter, text);
 
@@ -285,13 +286,13 @@ export class MyPlugin {
 
     // Given query results, scan it and convert to a string.
     private getResultString(contents: trcSheetContents.ISheetContents): string {
-        var count = contents["RecId"].length;
+        var count = contents[ColumnNames.RecId].length;
 
         var text = count + " rows";
 
         // Check for households
-        var addrColumn = contents["Address"];
-        var cityColumn = contents["City"];
+        var addrColumn = contents[ColumnNames.Address];
+        var cityColumn = contents[ColumnNames.City];
         if (addrColumn && cityColumn) {
             var uniqueAddrs = new HashCount();
             for (var i in addrColumn) {
@@ -397,7 +398,7 @@ export class MyPlugin {
         var recIds = this._lastResults.getRecIds();
 
 
-        var newName = "XTargetPri";
+        var newName = ColumnNames.XTargetPri;
         this.pauseUI();
 
         var column : trcSheet.IColumnInfo = {
@@ -1120,7 +1121,7 @@ class QueryResults {
     }
 
     public getRecIds(): string[] {
-        return this._lastResults["RecId"];
+        return this._lastResults[ColumnNames.RecId];
     }
 
     public getExpression(): string {
@@ -1128,19 +1129,19 @@ class QueryResults {
     }
 
     public getLats(): string[] {
-        return this._lastResults["Lat"];
+        return this._lastResults[ColumnNames.Lat];
     }
 
     public getLongs(): string[] {
-        return this._lastResults["Long"];
+        return this._lastResults[ColumnNames.Long];
     }
 
     public getAddresses(): string[] {
-        return this._lastResults["Address"];
+        return this._lastResults[ColumnNames.Address];
     }
 
     public getCities(): string[] {
-        return this._lastResults["City"];
+        return this._lastResults[ColumnNames.City];
     }
 }
 
