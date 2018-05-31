@@ -5,6 +5,6 @@
     "Author" :  "Voter-Science",
     "Website" :  "https://github.com/Voter-Science/Filter",
     "Description": "Provide support for querying a sheet with the filter expressions and partitioning it into child sheets based on a filter.",        
-    "Version": "1.1.0", // User SemVer
+    "Version": "1.2.0", // User SemVer
     "Tags": [ "filter", "partition"  ]
 }

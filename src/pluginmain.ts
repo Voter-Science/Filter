@@ -48,7 +48,7 @@ interface IPartition {
 }
 
 // We create a "virtual column" for the polyons defined in this sheet.
-const PolygonColumnName : string = "$IsInPolygon";
+const PolygonColumnName: string = "$IsInPolygon";
 
 export class MyPlugin {
     private _sheet: trcSheet.SheetClient;
@@ -392,6 +392,39 @@ export class MyPlugin {
             .then(() => this.resumeUI());
     }
 
+    public onSetTargets(): void {
+        var filter = this._lastResults.getExpression();
+        var recIds = this._lastResults.getRecIds();
+
+
+        var newName = "XTargetPri";
+        this.pauseUI();
+
+        var column : trcSheet.IColumnInfo = {
+            Name : newName,
+            DisplayName   : "Targeted voters",
+            IsReadOnly : true,
+            Expression: filter 
+        };
+
+        var columns = [column];
+
+        var admin = new trcSheet.SheetAdminClient(this._sheet);
+
+        admin.postOpCreateOrUpdateColumnsAsync(columns).then(
+            () => {
+                return admin.WaitAsync().then(() => {
+                    // Rather than have server recompute, just pull the last saved query results.
+                    this._columnStats[newName] = ColumnStats.NewTagFromRecId(recIds, this._rowCount);
+                    this.renderColumnInfo();
+                    this.renderQbuilderInfo();
+                });
+            }
+        ).catch(showError)
+            .then(() => this.resumeUI());;
+
+    }
+
     public onCreateMap(): void {
         $('#heatmap').hide();
         $("#map").show();
@@ -448,7 +481,7 @@ export class MyPlugin {
             this._map,
             [], { imagePath: 'https://cdn.rawgit.com/googlemaps/js-marker-clusterer/gh-pages/images/m' });
 
-        this.FinishInit(() => { } );
+        this.FinishInit(() => { });
 
         this.initDrawingManager(this._map); // adds drawing capability to map
 
@@ -584,13 +617,12 @@ export class MyPlugin {
                             JQBOperator.Equal, JQBOperator.NotEqual, JQBOperator.IsEmpty, JQBOperator.IsNotEmpty];
                     }
 
-                    if (columnName == PolygonColumnName)
-                    {
+                    if (columnName == PolygonColumnName) {
                         // This represents the polygons.
                         // Polygon comparison is either in or out.
                         operators = [
                             JQBOperator.Equal, JQBOperator.NotEqual
-                            ];
+                        ];
                     }
 
                     if (!bday && (valueLength < 30)) {
@@ -599,10 +631,10 @@ export class MyPlugin {
                         values = getPossibleValues;
 
                         if (columnName == 'Party') {
-                            var options:string = "";
+                            var options: string = "";
 
                             getPossibleValues.forEach(key => {
-                                options += '<input class="party-list" type="checkbox" name="vehicle" value="'+key+'"> '+key+'<br>';
+                                options += '<input class="party-list" type="checkbox" name="vehicle" value="' + key + '"> ' + key + '<br>';
                             });
                             $('#partyList').html(options);
                         }
@@ -924,7 +956,7 @@ export class MyPlugin {
 
         //this.addPolygonResizeEvents(polygon, sheetId);
         this.fillPolygon(polygon, color);
-      //  this.hideMarkers(polygon);
+        //  this.hideMarkers(polygon);
         this.addPolygonResizeEvents(polygon, sheetId);
 
         // Add a label to the polygon.
@@ -957,7 +989,7 @@ export class MyPlugin {
                 // $$$ - UI update.If we shrink the polygon, we should add back old markers.
                 // If we shrunk, show old values. (like a delete)
                 // If we grew, show new values.
-               // this.hideMarkers(polygon);
+                // this.hideMarkers(polygon);
                 //this.updateClusterMap();
             });
     }
@@ -1135,13 +1167,13 @@ function convertConditionToExpressionString(asQuery: IQueryCondition): string {
     return expressionStr;
 }
 
-function id2(name : string ) : string {
-    var x : any = name[0]; // first char 
+function id2(name: string): string {
+    var x: any = name[0]; // first char 
     if (isNaN(x)) {
         return name;
     }
 
-    return "@"+ name;
+    return "@" + name;
 }
 
 function convertRuleToExpressionString(asRule: IQueryRule): string {
@@ -1188,7 +1220,7 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
             return "false";
         }
         else {
-            var opStr :string;
+            var opStr: string;
             if (asRule.operator == JQBOperator.Equal) {
                 opStr = "";
             } else if (asRule.operator == JQBOperator.NotEqual) {
