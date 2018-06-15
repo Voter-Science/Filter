@@ -100,7 +100,11 @@ export class ColumnStats {
                     num = parseFloat(val);
                 }
 
-                if (!!num) {
+                if ((num == NaN) ||  num == undefined) { // 
+                    this._isNumber = false;
+                }
+                else 
+                {
                     if (this._numberMin) {
                         if (num < this._numberMin) {
                             this._numberMin = num;
@@ -115,9 +119,7 @@ export class ColumnStats {
                     } else {
                         this._numberMax = num;
                     }
-                } else {
-                    this._isNumber = false;
-                }
+                } 
 
                 nonBlank.push(val);
             }
