@@ -307,6 +307,10 @@
             <div class="col-sm-8">
                 <h1>QueryBuilder for Filter Expressions</h1>
                 <p>This plugin lets you run queries against your data for analysis and creating assignments.</p>
+                <p>See <a href="https://blog.voter-science.com/2017/06/12/how-to-filter-lists/" target="_blank">Help</a> for details on using this plugin. To get more data here, either
+                     <a href="https://blog.voter-science.com/trc-uploading-data/" target="_blank">upload it youself</a> or
+                     <a href="mailto:info@voter-science.com">contact voter-science</a>. 
+                </p>
             </div>
         </div>
 
@@ -376,7 +380,7 @@
                                 </div>
                             </div>
 
-                            <button onclick="_plugin.onRunQueryBasic()" class="btn btn-primary btn-show">Apply Filter</button>
+                            <button onclick="_plugin.onRunQueryBasic()" class="btn btn-primary btn-show">Run Query</button>
                         </div>
                     </div>
                 </div>
@@ -404,17 +408,11 @@
                             <table>
                                 <tr>
                                     <td>
-                                        <button id="btnSaveTag" onclick="_plugin.onCreateNewTag()" class="btn btn-default">Create Tag</button>
-                                    </td>
-                                    <td>Create a new tag with these results</td>
-                                </tr>
-                                <tr>
-                                    <td>
                                         <button id="btnSave" onclick="_plugin.onCreateChild()" class="btn btn-default">Save Query</button>
                                     </td>
                                     <td>
-                                        <p>Save this filter by name. This will create a new 'child sheet', which can then be assigned
-                                            out to volunteers.</p>
+                                        <p>Save this filter by name. This will create a new 'child sheet', which can then be 
+                                            <a target="_blank" href="https://blog.voter-science.com/2017/05/12/sharing-with-trc/">assigned out to volunteers</a> working on this campaign.</p>
                                     </td>
                                 </tr>
                                 <tr>
@@ -422,8 +420,27 @@
                                         <button id="btnSetTargets" onclick="_plugin.onSetTargets()" class="btn btn-default">Set as targets</button>
                                     </td>
                                     <td>
-                                        <p>Set this subset of voters as the 'targeted voters'. (this can take several minutes to apply)</p>
+                                        <p>Set this subset of voters as the 'targeted voters' (<a target="_blank" href="https://blog.voter-science.com/canvass-targeting/">Learn More</a>).
+                                            This can take several minutes to apply.                                            
+                                        </p>
                                     </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">Advanced Options:</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <button id="btnShare" onclick="_plugin.onShare()" class="btn btn-default">Share the results</button>
+                                    </td>
+                                    <td>
+                                        <p>Create a 'semantic' (<a href="https://blog.voter-science.com/trc-uploading-data/" target="_blank">Learn More</a>) for these results which can then be share with <em>other campaigns</em>. This does not create a new column in this sheet. </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <button id="btnSaveTag" onclick="_plugin.onCreateNewTag()" class="btn btn-default">Create Tag</button>
+                                    </td>
+                                    <td>Create a new tag with these results. This creates a new column in this sheet.</td>
                                 </tr>
                             </table>
 

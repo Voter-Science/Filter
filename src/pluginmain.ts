@@ -16,6 +16,7 @@ import * as trcSheetContents from 'trc-sheet/sheetContents'
 import {ColumnNames} from 'trc-sheet/sheetContents'
 import * as trcPoly from 'trc-sheet/polygonHelper';
 import * as trcSheetEx from 'trc-sheet/sheetEx'
+import * as trcCompute from 'trc-sheet/computeClient'
 
 import * as plugin from 'trc-web/plugin'
 import * as trchtml from 'trc-web/html'
@@ -73,6 +74,8 @@ export class MyPlugin {
     private _partitions: { [id: string]: IPartition; }; // Map sheetId --> IPartition
     private _markerCluster: any;
 
+    private _sc: trcCompute.SemanticClient;
+
     // $$$ find a way to avoid this.
     private static _pluginId: string = "Geofencing.Beta";
 
@@ -99,6 +102,7 @@ export class MyPlugin {
         // $("#btnSave").prop('disabled', true);
 
         var plugin2 = new MyPlugin(pluginClient);
+        plugin2._sc = new trcCompute.SemanticClient(pluginClient.HttpClient);
         plugin2.onChangeFilter(); // disable the Save buttons
 
         return plugin2.InitAsync().then(() => {
@@ -391,6 +395,40 @@ export class MyPlugin {
             this.renderQbuilderInfo();
         }).catch(showError)
             .then(() => this.resumeUI());
+    }
+
+    // Create a semantic from the results. 
+    public onShare (): void {
+        var description = prompt("What's a description for this semantic?");
+        var name = prompt("What's the short name for this semantic? [a-z0-9_]")
+        if (name == null)
+        {
+            return;
+        }
+
+        try {
+            trcSheet.Validators.ValidateColumnName(name);
+        }
+        catch (e) {
+            showError(e);
+            return;
+        }
+
+        var descr: trcCompute.ISemanticDescr = {
+            Name: name,
+            Description: description,
+            
+            SourceSheetId  : this._sheet._sheetId,
+            SourceExpression : this._lastResults.getExpression() 
+        };
+        
+        this._sc.postCreateAsync(descr).then((descr2) => { // Fast 
+            return this._sc.postRefreshAsync(descr2.Name).then(() => { // Possibly long running 
+                // Refresh so we can see it. 
+                alert('Successfully created: ' + name);
+            });
+        }).catch(showError);
+
     }
 
     public onSetTargets(): void {

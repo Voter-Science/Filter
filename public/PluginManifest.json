@@ -4,7 +4,8 @@
     "Name": "Filtering",
     "Author" :  "Voter-Science",
     "Website" :  "https://github.com/Voter-Science/Filter",
+    "HelpLink" : "https://blog.voter-science.com/2017/06/12/how-to-filter-lists/",
     "Description": "Provide support for querying a sheet with the filter expressions and partitioning it into child sheets based on a filter.",        
-    "Version": "1.2.0", // User SemVer
+    "Version": "1.3.0", // User SemVer
     "Tags": [ "filter", "partition"  ]
 }
