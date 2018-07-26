@@ -77,15 +77,23 @@ export class MyPlugin {
     private _sc: trcCompute.SemanticClient;
 
     // $$$ find a way to avoid this.
-    private static _pluginId: string = "Geofencing.Beta";
+    private static _pluginId: string = "Filter";
 
     // $$$ Move to PluginOptionsHelper?
+    /*
     private getGotoLinkSheet(sheetId: string): string {
         if (this._opts == undefined) {
             return "/"; // avoid a crash
         }
         return this._opts.gotoUrl + "/" + sheetId + "/" +
             MyPlugin._pluginId + "/index.html";
+    }*/
+    private getGotoLinkForPlugin(pluginId: string): string {
+        if (this._opts == undefined) {
+            return "/"; // avoid a crash
+        }
+        return this._opts.gotoUrl + "/" + this._sheet._sheetId + "/" +
+            pluginId + "/index.html";
     }
 
     public static BrowserEntryAsync(
@@ -102,6 +110,7 @@ export class MyPlugin {
         // $("#btnSave").prop('disabled', true);
 
         var plugin2 = new MyPlugin(pluginClient);
+        plugin2._opts = opts;
         plugin2._sc = new trcCompute.SemanticClient(pluginClient.HttpClient);
         plugin2.onChangeFilter(); // disable the Save buttons
 
@@ -128,8 +137,8 @@ export class MyPlugin {
     // Need this as a separate call from the ctor since ctors aren't async.
     private InitAsync(): Promise<void> {
         // Set links to live
-        $("#gotoListView").attr("href", this.getGotoLinkSheet("ListView"));
-        $("#gotoDataUploader").attr("href", this.getGotoLinkSheet("DataUploader"));        
+        $("#gotoListView").attr("href", this.getGotoLinkForPlugin("ListView"));
+        $("#gotoDataUploader").attr("href", this.getGotoLinkForPlugin("DataUploader"));        
 
         return this._sheet.getInfoAsync().then(info => {
 
