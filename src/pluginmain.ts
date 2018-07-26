@@ -127,7 +127,17 @@ export class MyPlugin {
     // Make initial network calls to setup the plugin.
     // Need this as a separate call from the ctor since ctors aren't async.
     private InitAsync(): Promise<void> {
+        // Set links to live
+        $("#gotoListView").attr("href", this.getGotoLinkSheet("ListView"));
+        $("#gotoDataUploader").attr("href", this.getGotoLinkSheet("DataUploader"));        
+
         return this._sheet.getInfoAsync().then(info => {
+
+            if (!!info.ParentId) { 
+                // Not a top-level sheet. 
+                $(".requireTop").hide();
+            }
+
             this.updateInfo(info);
             return this.getStats();
         });
