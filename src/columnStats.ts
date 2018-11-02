@@ -29,11 +29,101 @@ function sortByFrequency(array: string[]): string[] {
     return x;
 }
 
+interface IGrouper 
+{
+    getGroupByValues() : string [];
+    getGroupByIndex(val : string) : number;
+}
+
+// Percentage from 0...100%. Group in 5 buckets 
+class PercentageGrouper implements IGrouper 
+{
+    private static _result : string[] = [
+        "0-20%", "20-40%", "40-60%", "60-80%", "80-100%"];
+
+    public getGroupByValues() : string []
+    {
+        return PercentageGrouper._result;
+    }
+
+    // undefined if not mapped
+    public getGroupByIndex(val : string) : number
+    {
+        var x = parseFloat(val);
+        if (val[val.length-1] != '%') {
+            x  = x * 100.0;
+        }
+
+        var max = PercentageGrouper._result.length;
+        x /= (100 / max);
+        if (x < 0) { x = 0; }
+        if (x >= max) { x = max-1 };
+        
+        return x;
+    }
+}
+
+
+class TagGrouper implements IGrouper 
+{
+    private static _result : string[] = ["Yes", "No"];
+
+    public getGroupByValues() : string []
+    {
+        return TagGrouper._result;
+    }
+
+    // undefined if not mapped
+    public getGroupByIndex(val : string) : number
+    {
+        if (val == '1') {
+            return 0; // idx of YES
+        }
+        return 1; // idx of No
+    }
+}
+
+class GenericGrouper implements IGrouper 
+{
+    private _valueIdx : any = { }; // value --> idx into counts
+
+    private _possibleValues: Array<string>;
+
+    // // non-blank, unique values, alphabetically sorted 
+    public constructor(values: Array<string>) 
+    {
+        this._possibleValues = values;
+        var valueIdx : any = { }; // value --> idx into counts
+        for(var i  =0; i < values.length; i++) {
+            var x = values[i];
+            valueIdx[x] = i;            
+            if (x == "0") {
+                valueIdx[""] = i; // map empty to 0
+            }
+        }
+        this._valueIdx = valueIdx;        
+    }
+    public getGroupByValues() : string []
+    {
+        return this._possibleValues;
+    }
+
+    // undefined if not mapped
+    public getGroupByIndex(val : string) : number
+    {
+        var idx = this._valueIdx[val];
+        if (idx == undefined) { // Beware, !0 is true, so check undefined.
+            idx = this._valueIdx[""];
+        }
+        return idx;
+    }
+}
+
 // Represents statistics about a column. 
 // Analyze column contents to infer statistics and type.
 export class ColumnStats {
     private _uniques: Array<string>; // array of unique values in this column 
-    private _possibleValues: Array<string>; // non-blank, unique values, alpha betically sorted 
+    private _possibleValues: Array<string>; // non-blank, unique values, alphabetically sorted 
     private _numBlanks: number = 0;  // number of blank elements in this column. 
     private _isTagType: boolean; // true if this column is a tag. 
 
@@ -42,6 +132,9 @@ export class ColumnStats {
     private _isNumber: boolean;
     private _numberMin: number;
     private _numberMax: number;
+
+    private _grouper : IGrouper;
+    private _columnName : string; // Optional
 
     public isTagType(): boolean { return this._isTagType };
     public isNumberType(): boolean { return this._isNumber; };
@@ -52,6 +145,10 @@ export class ColumnStats {
     public getNumberRange(): number[] { return [this._numberMin, this._numberMax]; };
     public getPossibleValues(): string[] { return this._possibleValues; }
 
+    // Can this coulmn be used in a group-by?
+    
+    public isGroupBy() : boolean {return !!this._grouper; }
+
     // Given a list of recIds (from a cached search result), get a ColumnStats for a 
     // tag column for these recIds. 
     public static NewTagFromRecId(recIds: string[], totalSize: number) {
@@ -60,16 +157,25 @@ export class ColumnStats {
         for (var i in recIds) {
             vals[i] = '1';
         }
-        return new ColumnStats(vals);
+        return new ColumnStats(null, vals);
     }
 
     // Create a column stat representing a list of polygon options 
     public static NewFromPolygonList(names: string[]) {
-        return new ColumnStats(names);
+        return new ColumnStats(null, names);
+    }
+
+    public getGroupByValues() : string [] {
+        return this._grouper.getGroupByValues();
+
+    }
+    public getGroupByIndex(val : string)  : number {
+        return this._grouper.getGroupByIndex(val);
     }
 
 
-    public constructor(vals: string[]) {
+    // Given the actual values for this column infer the statistics about it. 
+    public constructor(columnName : string, vals: string[]) {
 
         var nonBlank: string[] = []
 
@@ -137,6 +243,19 @@ export class ColumnStats {
         this._possibleValues.sort();
 
         this._uniques = sortByFrequency(nonBlank);
+
+        this._columnName == columnName;
+        if (columnName == "History") 
+        {
+            this._grouper = new PercentageGrouper();
+        } else if (columnName == "Party") 
+        {
+            this._grouper = new GenericGrouper(["0", "1", "2", "3", "4", "5"]);
+        } else if (this._isTagType) {
+            this._grouper = new TagGrouper();
+        } else if (this._possibleValues.length < 10) {
+            this._grouper = new GenericGrouper(this._possibleValues);
+        }
     }
 
     // Get a short summary string for the values in this column. 

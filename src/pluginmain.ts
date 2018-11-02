@@ -25,6 +25,7 @@ import { HashCount } from './hashcount'
 
 declare var $: any; // external definition for JQuery
 declare var MarkerClusterer: any; // external definition
+declare var Chart: any; // external definition for Chart,  http://www.chartjs.org/docs/latest/getting-started/
 
 // Provide easy error handle for reporting errors from promises.  Usage:
 //   p.catch(showError);
@@ -171,10 +172,17 @@ export class MyPlugin {
         data["Column Names"] = colNames;
         data["Values"] = colValues;
 
+        var groupBy = $("#groupby");
+
         for (var columnName in this._columnStats) {
-            var values = <ColumnStats>this._columnStats[columnName];
+            var values = this.getColumnStat(columnName);
 
             colNames.push(columnName);
+
+            if (values.isGroupBy()) {
+                var opt = $("<option>").val(columnName).text(columnName);
+                groupBy.append(opt);
+            }
 
             var text = values.getSummaryString(this._rowCount);
             colValues.push(text);
@@ -264,7 +272,7 @@ export class MyPlugin {
                                 for (var columnName in contents) {
                                     var vals = contents[columnName];
 
-                                    var stats = new ColumnStats(vals);
+                                    var stats = new ColumnStats(columnName, vals);
 
                                     values[columnName] = stats;
                                 }
@@ -291,9 +299,18 @@ export class MyPlugin {
         clearError();
         this.onChangeFilter();
 
+        var groupByName = $("#groupby").val();
+        var groupBy = this.getColumnStat(groupByName);
+
         this.pauseUI();
+
         // Columns must exist. verify that Address,City exist before asking for them.
-        this._sheet.getSheetContentsAsync(filter, [ColumnNames.RecId, ColumnNames.Address, ColumnNames.City, ColumnNames.Lat, ColumnNames.Long]).then(contents => {
+        var fetchColumns = [ColumnNames.RecId, ColumnNames.Address, ColumnNames.City, ColumnNames.Lat, ColumnNames.Long];
+        if (!!groupBy) {
+            fetchColumns.push(groupByName);
+        }
+
+        this._sheet.getSheetContentsAsync(filter, fetchColumns).then(contents => {
             var text = this.getResultString(contents);
             this.addResult(filter, text);
 
@@ -301,10 +318,106 @@ export class MyPlugin {
             // this._lastResults = contents;
             // alert("This query has " + count + " rows.");
 
-            var lastResults = new QueryResults(filter, contents);
+            var lastResults = new QueryResults(filter, contents, groupByName);
+            
+
             this.onEnableSaveOptions(lastResults);
+
+            // Set chart 
+            this.renderChart();
         }).catch(showError)
             .then(() => this.resumeUI());
+    }
+
+    private NewArray(len : number) : number[] {
+        var x : number[]= [];
+        for(var i = 0; i < len; i++) {
+            x[i] =0 ;
+        }
+        return x;
+    }
+
+    private renderChart() : void {
+        var results = this._lastResults;
+        var groupByName = results.getGroupBy();
+        var groupBy = this.getColumnStat(groupByName);
+
+        if (!groupBy)
+        {
+            return; // No GroupBy selected, can't chart. 
+        };
+
+
+        var values : string[] = groupBy.getGroupByValues();
+
+        var counts : number[] = this.NewArray(values.length);
+        
+        for(var i =0; i < results.length(); i++) {
+            var rawValue = results.getGroupByAt(i);
+            var idx = groupBy.getGroupByIndex(rawValue);
+            counts[idx] ++;
+        }
+
+        var backgroundColor : string[] = [];
+        if (groupByName == "Party") 
+        {
+            backgroundColor.push("#BBBBBB"); // 0
+            backgroundColor.push("#FF0000"); // 1 = red 
+            backgroundColor.push("#880000"); // 2
+            backgroundColor.push("#880088"); // 3 
+            backgroundColor.push("#000088"); // 4
+            backgroundColor.push("#0000FF"); // 5 Blue 
+        }
+
+        //values = ["A","B","C","D","E"];
+        //counts = [1,2,3,4,5];
+
+        var barChartData = {
+            labels: values,
+            datasets: [{
+                label: 'Results',
+                backgroundColor : backgroundColor,
+                // borderColor : borderColor,
+                borderWidth: 1,
+                data: counts
+            }]
+        };
+
+        var parent = $("#mychart");
+        parent.empty(); // clear previous results 
+        var canvas = $("<canvas>"); // new one 
+        parent.append(canvas);
+        
+        new Chart(canvas, {
+            type: 'bar',
+            data: barChartData,
+            options: {
+                scales: {
+                    yAxes: [{                      
+                      scaleLabel: {
+                        display: true,
+                        labelString: 'Count'
+                      }
+                    }],
+                    xAxes: [{
+                        scaleLabel: {
+                          display: true,
+                          labelString: groupByName
+                        }
+                      }]
+                  },                    
+                barPercentage : 1,
+                responsive: true,
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: results.getExpression()  + ' grouped by ' + groupByName
+                }                   
+            }
+        });
+
     }
 
     // Given query results, scan it and convert to a string.
@@ -345,7 +458,7 @@ export class MyPlugin {
         var e2b = $("<td>").text(result);
 
         var e2c = $("<td>");
-        var e3 = $("<button>").text("[remove]").click(() => {
+        var e3 = $("<button>").text("remove").click(() => {
             $("#" + id).remove();
         });
         e2c.append(e3);
@@ -414,6 +527,11 @@ export class MyPlugin {
             this.renderQbuilderInfo();
         }).catch(showError)
             .then(() => this.resumeUI());
+    }
+
+    // return undefined if not found 
+    private getColumnStat(name : string ) : ColumnStats {
+            return  <ColumnStats>this._columnStats[name];    
     }
 
     // Create a semantic from the results. 
@@ -636,7 +754,7 @@ export class MyPlugin {
         this._optionFilter = [];
 
         for (var columnName in this._columnStats) {
-            var columnDetail = <ColumnStats>this._columnStats[columnName];
+            var columnDetail = this.getColumnStat(columnName);
 
             var getPossibleValues = columnDetail.getPossibleValues();
 
@@ -1171,8 +1289,14 @@ export class MyPlugin {
 class QueryResults {
     private _lastResults: trcSheetContents.ISheetContents; // Results of last query
     private _expression: string; // the filter expression used to run and get these results
+    private _groupByName : string; // optional, used for group by
 
-    public constructor(expression: string, results: trcSheetContents.ISheetContents) {
+    public constructor(
+        expression: string, 
+        results: trcSheetContents.ISheetContents,
+        groupByName : string) {
+
+        this._groupByName = groupByName;
         this._lastResults = results;
         this._expression = expression;
     }
@@ -1183,6 +1307,17 @@ class QueryResults {
 
     public getExpression(): string {
         return this._expression;
+    }
+    public length() : number     {
+        return this.getRecIds().length;
+    }
+
+    public getGroupBy(): string {
+        return this._groupByName;
+    }
+
+    public getGroupByAt(idx : number): string {
+        return this._lastResults[this._groupByName][idx];
     }
 
     public getLats(): string[] {
