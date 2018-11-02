@@ -387,12 +387,6 @@
                     </div>
                 </div>
 
-<div>
-    <p>Group By: <select class="form-control" id="groupby">
-        <option>(none)</option>
-    </select> </p>
-</div>
-
                 <h3></h3>
 
                 <div id="saveOptions">
@@ -483,13 +477,26 @@
 
                         <div id="act4" class="tab-pane fade">
 
-                            <h3>Create charts</h3>
-
-                            <p>[Create] Create a histogram [by column] </p>
-
-                            <div id="mychart"></div>
+                            <h3>Create chart</h3>
                             
-                            <p>[Create] pie chart [by column]. </p>
+                            <div>
+                                <p>Group the above results by: <select class="form-control" id="groupby">
+                                    <option>(none)</option>
+                                </select> </p>
+                            </div>
+                            <button id="btnBarChart" onclick="_plugin.onCreateBarChart()" class="btn btn-default">Show Bar chart</button>
+                            <button id="btnPieChart" onclick="_plugin.onCreatePieChart()" class="btn btn-default">Show Pie chart</button>
+
+                            <div id="mychart"></div>                            
+
+                            <div id="chartControls">
+                                <p>Sort By:
+                                    <button onclick="_plugin.onSortAlpha()" class="btn btn-default">Alpha A-Z</button>
+                                    <button onclick="_plugin.onSortInc()" class="btn btn-default">Ascending 0..9</button>
+                                    <button onclick="_plugin.onSortDec()" class="btn btn-default">Descending 9 ..0</button>
+                                </p>
+                                </div>
+                            
                         </div>
                     </div>
                 </div>

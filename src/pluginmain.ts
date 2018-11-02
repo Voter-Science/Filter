@@ -294,12 +294,41 @@ export class MyPlugin {
         this.showFilterResult(filter);
     }
 
+    public onCreateBarChart() : void {
+        var groupByName = $("#groupby").val();
+        
+        var filter = this._lastResults.getExpression();
+        this.showFilterResult(filter, groupByName).then ( ()=> 
+        {            
+            this.renderChart("bar", undefined);
+        });
+    }
+    
+    public onCreatePieChart() : void {
+        var groupByName = $("#groupby").val();
+        
+        var filter = this._lastResults.getExpression();
+        this.showFilterResult(filter, groupByName).then ( ()=> 
+        {            
+            this.renderChart("pie", undefined);
+        });
+    }
+
+    public onSortAlpha() : void {        
+        this.renderChart(undefined, ChartSorter.Alpha);
+    }
+    public onSortInc() : void {
+        this.renderChart(undefined, ChartSorter.Ascending);
+    }
+    public onSortDec() : void {
+        this.renderChart(undefined, ChartSorter.Descending);
+    }
+
     // Add the result to the html log.
-    private showFilterResult(filter: string): void {
+    private showFilterResult(filter: string, groupByName? : string): Promise<void> {
         clearError();
         this.onChangeFilter();
 
-        var groupByName = $("#groupby").val();
         var groupBy = this.getColumnStat(groupByName);
 
         this.pauseUI();
@@ -310,7 +339,7 @@ export class MyPlugin {
             fetchColumns.push(groupByName);
         }
 
-        this._sheet.getSheetContentsAsync(filter, fetchColumns).then(contents => {
+        return this._sheet.getSheetContentsAsync(filter, fetchColumns).then(contents => {
             var text = this.getResultString(contents);
             this.addResult(filter, text);
 
@@ -322,9 +351,6 @@ export class MyPlugin {
             
 
             this.onEnableSaveOptions(lastResults);
-
-            // Set chart 
-            this.renderChart();
         }).catch(showError)
             .then(() => this.resumeUI());
     }
@@ -337,18 +363,44 @@ export class MyPlugin {
         return x;
     }
 
-    private renderChart() : void {
+    // https://stackoverflow.com/questions/25594478/different-color-for-each-bar-in-a-bar-chart-chartjs
+    private randomColorGenerator() { 
+        return '#' + (Math.random().toString(16) + '0000000').slice(2, 8); 
+    };
+
+    private _lastChartType : string; 
+
+    // chartType = "bar" | "pie"
+    private renderChart(chartType : string, sortFunc : any) : void {
         var results = this._lastResults;
         var groupByName = results.getGroupBy();
         var groupBy = this.getColumnStat(groupByName);
 
+        if (!chartType) {
+            chartType = this._lastChartType;
+        }
+        if (!chartType) {
+            chartType = "bar";
+        }
+
+        this._lastChartType =chartType;
+        if (!sortFunc) {
+            sortFunc = ChartSorter.Alpha;
+        }
+
+        var parent = $("#mychart");
+        parent.empty(); // clear previous results 
+
         if (!groupBy)
         {
+            var msg = $("<p>").text("You must select a filed to group by in order to create a chart.");
+            parent.append(msg);
             return; // No GroupBy selected, can't chart. 
         };
 
+        $("#chartControls").show();
 
-        var values : string[] = groupBy.getGroupByValues();
+        var values : string[] = groupBy.getGroupByValues().slice(0);
 
         var counts : number[] = this.NewArray(values.length);
         
@@ -358,42 +410,49 @@ export class MyPlugin {
             counts[idx] ++;
         }
 
-        var backgroundColor : string[] = [];
-        if (groupByName == "Party") 
-        {
-            backgroundColor.push("#BBBBBB"); // 0
-            backgroundColor.push("#FF0000"); // 1 = red 
-            backgroundColor.push("#880000"); // 2
-            backgroundColor.push("#880088"); // 3 
-            backgroundColor.push("#000088"); // 4
-            backgroundColor.push("#0000FF"); // 5 Blue 
+        var backgroundColor : string[]  = groupBy.getGroupByColors();
+        if (!backgroundColor)  {
+            backgroundColor = [];
+            if (chartType == "bar") {
+                for(var i =0; i < values.length; i++) {
+                    backgroundColor.push("#444444");
+                }
+            } else if (chartType == "pie") {                
+                for(var i =0; i < values.length; i++) {
+                    backgroundColor.push(this.randomColorGenerator());
+                }
+            }            
+        } else {
+            backgroundColor = backgroundColor.slice(0);
         }
+        
+        // Apply sorters (values | counts | backgroundColor)
+        ChartSorter.sort(sortFunc, values, counts, backgroundColor);
 
-        //values = ["A","B","C","D","E"];
-        //counts = [1,2,3,4,5];
 
         var barChartData = {
             labels: values,
             datasets: [{
                 label: 'Results',
                 backgroundColor : backgroundColor,
-                // borderColor : borderColor,
+                borderColor : "black",
                 borderWidth: 1,
                 data: counts
             }]
         };
 
-        var parent = $("#mychart");
-        parent.empty(); // clear previous results 
         var canvas = $("<canvas>"); // new one 
         parent.append(canvas);
         
         new Chart(canvas, {
-            type: 'bar',
+            type: chartType, // 'bar' | 'pie'
             data: barChartData,
             options: {
                 scales: {
-                    yAxes: [{                      
+                    yAxes: [{ 
+                        ticks: {
+                            beginAtZero: true
+                        },                                 
                       scaleLabel: {
                         display: true,
                         labelString: 'Count'
@@ -485,6 +544,8 @@ export class MyPlugin {
         $("#saveOptions").hide();
         $('#map').empty().hide();
         $('#heatmap').empty().hide();
+        $('#mychart').empty()
+        $("#chartControls").hide();
     }
 
     public onCreateChild(): void {
@@ -619,6 +680,10 @@ export class MyPlugin {
         var marker, i;
 
         for (i = 0; i < recIds.length; i++) {
+            if (!this.isLLValid(lats[i], lngs[i])) {
+                continue;
+            }
+
             var latLng = new google.maps.LatLng(lats[i], lngs[i])
             marker = new google.maps.Marker({
                 position: latLng,
@@ -672,6 +737,18 @@ export class MyPlugin {
         this.createHeatmap(data, "heatmap");
     }
 
+    // Don't show pins with invalid Lat/Long values. 
+    private isLLValidWorker(x :string) : boolean 
+    {
+        var f = parseFloat(x);        
+        return !!f;
+    }
+
+    private isLLValid(lat : string, long : string) : boolean
+    {
+        return this.isLLValidWorker(lat) && this.isLLValidWorker(long);
+    }
+
     private getHeatmapData(): any {
 
         var lats = this._lastResults.getLats();
@@ -684,9 +761,11 @@ export class MyPlugin {
         var max: number = 0;
 
         for (let i: number = 0; i < count; i++) {
-
             let lat = lats[i];
             let lng = lngs[i];
+            if (!this.isLLValid(lat, lng)) {
+                continue;
+            }
 
             let key = "".concat(lat, lng);
             if (!key) continue;
@@ -1224,7 +1303,7 @@ export class MyPlugin {
         for (let i: number = 0; i < count; i++) {
 
             let lat = lats[i];
-            let lng = lngs[i];
+            let lng = lngs[i];            
 
             if (this.isInsidePolygon(lat, lng, polygon)) {
                 predicate(i);
@@ -1520,3 +1599,40 @@ interface IQueryCondition {
     condition: string; // "AND", "OR"
     rules: IQueryRule[] | IQueryCondition[]
 }
+
+
+
+
+class ChartSorter 
+{
+    public static Ascending : any = function(a : any, b : any) {
+        return a.age - b.age;
+    };
+    public static Descending : any = function(a : any, b : any) {
+        return b.age - a.age;
+    };
+    public static Alpha : any = function(a : any, b : any) {
+        return ((a.name < b.name) ? -1 : ((a.name == b.name) ? 0 : 1));
+    };
+
+    // https://stackoverflow.com/questions/11499268/sort-two-arrays-the-same-way
+    public static sort(func : any, names : string[], counts : number [], colors : string[]) : void
+    {
+        //1) combine the arrays:
+        var list = [];
+        for (var j = 0; j < names.length; j++) {
+            list.push({'name': names[j], 'age': counts[j], 'color' : colors[j]});
+        }
+
+        //2) sort:
+        list.sort(func);
+
+        //3) separate them back out:
+        for (var k = 0; k < list.length; k++) {
+            names[k] = list[k].name;
+            counts[k] = list[k].age;
+            colors[k] = list[k].color;
+        }
+    }
+}
+

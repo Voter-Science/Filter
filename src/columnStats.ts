@@ -33,6 +33,7 @@ interface IGrouper
 {
     getGroupByValues() : string [];
     getGroupByIndex(val : string) : number;
+    getColors() : string[];
 }
 
 // Percentage from 0...100%. Group in 5 buckets 
@@ -61,6 +62,9 @@ class PercentageGrouper implements IGrouper
         
         return x;
     }
+    public getColors() : string[]{
+        return null;
+    }
 }
 
 
@@ -81,6 +85,10 @@ class TagGrouper implements IGrouper
         }
         return 1; // idx of No
     }
+
+    public getColors() : string[] {
+        return [ "#00CC00", "#CC0000"]; // Green for yes, Red for no.
+    }
 }
 
 class GenericGrouper implements IGrouper 
@@ -88,10 +96,12 @@ class GenericGrouper implements IGrouper
     private _valueIdx : any = { }; // value --> idx into counts
 
     private _possibleValues: Array<string>;
+    public _colors : string[] ;
 
     // // non-blank, unique values, alphabetically sorted 
     public constructor(values: Array<string>) 
     {
+        this._colors = null;
         this._possibleValues = values;
         var valueIdx : any = { }; // value --> idx into counts
         for(var i  =0; i < values.length; i++) {
@@ -116,6 +126,10 @@ class GenericGrouper implements IGrouper
             idx = this._valueIdx[""];
         }
         return idx;
+    }
+
+    public getColors() : string[]  {
+        return this._colors;
     }
 }
 
@@ -172,6 +186,11 @@ export class ColumnStats {
     public getGroupByIndex(val : string)  : number {
         return this._grouper.getGroupByIndex(val);
     }
+
+    public getGroupByColors()  : string[] {
+        return this._grouper.getColors();
+    }
+
 
 
     // Given the actual values for this column infer the statistics about it. 
@@ -250,10 +269,20 @@ export class ColumnStats {
             this._grouper = new PercentageGrouper();
         } else if (columnName == "Party") 
         {
-            this._grouper = new GenericGrouper(["0", "1", "2", "3", "4", "5"]);
+            var x = new GenericGrouper(["0", "1", "2", "3", "4", "5"]);
+            x._colors = [
+                "#BBBBBB",  // 0
+                "#FF0000", // 1 = red 
+                "#880000", // 2
+                "#880088", // 3 
+                "#000088", // 4
+                "#0000FF" // 5 Blue 
+            ]
+            this._grouper  = x;
         } else if (this._isTagType) {
             this._grouper = new TagGrouper();
-        } else if (this._possibleValues.length < 10) {
+
+        } else if (this._possibleValues.length < 20) {
             this._grouper = new GenericGrouper(this._possibleValues);
         }
     }
