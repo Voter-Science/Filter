@@ -23,6 +23,8 @@ import * as trchtml from 'trc-web/html'
 import { ColumnStats } from './columnStats'
 import { HashCount } from './hashcount'
 
+import * as tableWriter from 'trc-web/tablewriter';
+
 declare var $: any; // external definition for JQuery
 declare var MarkerClusterer: any; // external definition
 declare var Chart: any; // external definition for Chart,  http://www.chartjs.org/docs/latest/getting-started/
@@ -172,7 +174,8 @@ export class MyPlugin {
         data["Column Names"] = colNames;
         data["Values"] = colValues;
 
-        var groupBy = $("#groupby");
+        
+        var groupBy = [ $("#groupby"), $("#groupby1"), $("#groupby2") ];
 
         for (var columnName in this._columnStats) {
             var values = this.getColumnStat(columnName);
@@ -180,8 +183,10 @@ export class MyPlugin {
             colNames.push(columnName);
 
             if (values.isGroupBy()) {
-                var opt = $("<option>").val(columnName).text(columnName);
-                groupBy.append(opt);
+                groupBy.forEach( element => {
+                    var opt = $("<option>").val(columnName).text(columnName);
+                    element.append(opt);
+                });
             }
 
             var text = values.getSummaryString(this._rowCount);
@@ -294,26 +299,48 @@ export class MyPlugin {
         this.showFilterResult(filter);
     }
 
-    public onCreateBarChart() : void {
-        var groupByName = $("#groupby").val();
-        
-        var filter = this._lastResults.getExpression();
-        this.showFilterResult(filter, groupByName).then ( ()=> 
+
+    public onCreateCrossTab() : void {
+        var g1 = $("#groupby1").val();
+        var g2 = $("#groupby2").val();
+
+        if (!this.getColumnStat(g1).isGroupBy() ||
+            !this.getColumnStat(g2).isGroupBy()) 
+        {
+            return;
+        }
+
+        var filter = this._lastResults.getExpression(); // already applied the "Select"
+        this.showFilterResult(filter, g1, g2).then ( ()=> 
         {            
-            this.renderChart("bar", undefined);
-        });
+            this.renderCrossTabs();
+        }).catch(showError);
+    }
+
+    public onCreateBarChart() : void {
+        this.onCreateChart("bar");
     }
     
     public onCreatePieChart() : void {
-        var groupByName = $("#groupby").val();
-        
-        var filter = this._lastResults.getExpression();
-        this.showFilterResult(filter, groupByName).then ( ()=> 
-        {            
-            this.renderChart("pie", undefined);
-        });
+        this.onCreateChart("pie");        
     }
 
+    private onCreateChart(chartType : string) : void {
+        var groupByName = $("#groupby").val();
+        if (!this.getColumnStat(groupByName).isGroupBy())
+        {
+            return;
+        }
+
+        
+        var filter = this._lastResults.getExpression(); // already applied the "Select"
+        this.showFilterResult(filter, groupByName).then ( ()=> 
+        {            
+            this.renderChart(chartType, undefined);
+        }).catch(showError);
+    }
+
+    // Filters for sorting chart. 
     public onSortAlpha() : void {        
         this.renderChart(undefined, ChartSorter.Alpha);
     }
@@ -325,12 +352,15 @@ export class MyPlugin {
     }
 
     // Add the result to the html log.
-    private showFilterResult(filter: string, groupByName? : string): Promise<void> {
+    private showFilterResult(
+        filter: string,
+        groupByName? : string,
+        groupByName2? : string): Promise<void> {
         clearError();
         this.onChangeFilter();
 
         var groupBy = this.getColumnStat(groupByName);
-
+        
         this.pauseUI();
 
         // Columns must exist. verify that Address,City exist before asking for them.
@@ -338,16 +368,24 @@ export class MyPlugin {
         if (!!groupBy) {
             fetchColumns.push(groupByName);
         }
+        if (!!groupByName2) {
+            fetchColumns.push(groupByName2);
+        }
+        fetchColumns.concat(["Party", "Supporter"]);
 
         return this._sheet.getSheetContentsAsync(filter, fetchColumns).then(contents => {
             var text = this.getResultString(contents);
-            this.addResult(filter, text);
+
+            // skip addResult it this is a groupBy, since the expression was already executed. 
+            if (!groupByName) { 
+                this.addResult(filter, text);
+            }
 
             // Don't need to alert, it shows up in the result.
             // this._lastResults = contents;
             // alert("This query has " + count + " rows.");
 
-            var lastResults = new QueryResults(filter, contents, groupByName);
+            var lastResults = new QueryResults(filter, contents, groupByName, groupByName2);
             
 
             this.onEnableSaveOptions(lastResults);
@@ -479,6 +517,77 @@ export class MyPlugin {
 
     }
 
+
+    // Show a 2d pivot. 
+    private renderCrossTabs() : void {
+        var e = $("#mycrosstabs");
+        e.empty(); // Clear first in case of errors. 
+
+        var results = this._lastResults;
+
+        var g1: string = results.getGroupBy();
+        var g2: string = results.getGroupBy2();
+
+        var c1 = this.getColumnStat(g1);
+        var c2 = this.getColumnStat(g2);
+
+        var rows    : string[] = c1.getGroupByValues().slice(0);
+        var columns : string[] = c2.getGroupByValues().slice(0);
+
+        var counts : number[][] = []; // counts[row][column]
+        var numCols = columns.length;
+        var numRows = rows.length;
+        rows.forEach( ()=> counts.push(this.NewArray(numCols)));
+
+        var rowTotals : number[] = this.NewArray(numRows);
+        var colTotals : number[] = this.NewArray(numCols);
+        var grandTotal : number = 0;
+        
+        for(var i =0; i < results.length(); i++) {
+            var rawValue = results.getGroupByAt(i); // lookup in results 
+            var idxRow = c1.getGroupByIndex(rawValue);
+
+            var rawValue = results.getGroupByAt2(i); // lookup in results 
+            var idxCol = c2.getGroupByIndex(rawValue);
+            counts[idxRow][idxCol] ++;
+            rowTotals[idxRow] ++;
+            colTotals[idxCol]++;
+            grandTotal++;
+        }
+
+        // Now render table 
+        var tableColumns = [g1].concat(columns).concat(["Total"]);
+
+        
+        e.append($("<p>").text(this._lastResults.getExpression() + " grouped by ("
+         + g1 + "," + g2 + ")")); // add a title
+        
+        var tw = new tableWriter.TableWriter(e, tableColumns);
+        rows.forEach((rowName, rowIdx) => {
+            var rowObj : any = {};
+            rowObj[g1] = rowName;
+            columns.forEach( (colName, colIdx) => {
+                rowObj[colName] = counts[rowIdx][colIdx];
+            });
+            rowObj["Total"] = rowTotals[rowIdx];
+            tw.writeRow(rowObj);
+        });
+
+        // Add final total 
+        {
+            var rowObj : any = {};
+            rowObj[g1] = "Total";
+            columns.forEach( (colName, colIdx) => {
+                rowObj[colName] = colTotals[colIdx];
+            });
+            rowObj["Total"] = grandTotal;
+            tw.writeRow(rowObj);
+        }
+
+        tw.addDownloadIcon();
+
+    }
+
     // Given query results, scan it and convert to a string.
     private getResultString(contents: trcSheetContents.ISheetContents): string {
         var count = contents[ColumnNames.RecId].length;
@@ -546,6 +655,7 @@ export class MyPlugin {
         $('#heatmap').empty().hide();
         $('#mychart').empty()
         $("#chartControls").hide();
+        $("#mycrosstabs").empty();
     }
 
     public onCreateChild(): void {
@@ -1369,13 +1479,16 @@ class QueryResults {
     private _lastResults: trcSheetContents.ISheetContents; // Results of last query
     private _expression: string; // the filter expression used to run and get these results
     private _groupByName : string; // optional, used for group by
+    private _groupByName2 : string; // optional, used for group by
 
     public constructor(
         expression: string, 
         results: trcSheetContents.ISheetContents,
-        groupByName : string) {
+        groupByName : string,
+        groupByName2? : string) {
 
         this._groupByName = groupByName;
+        this._groupByName2= groupByName2;
         this._lastResults = results;
         this._expression = expression;
     }
@@ -1397,6 +1510,14 @@ class QueryResults {
 
     public getGroupByAt(idx : number): string {
         return this._lastResults[this._groupByName][idx];
+    }
+
+    public getGroupBy2(): string {
+        return this._groupByName2;
+    }
+
+    public getGroupByAt2(idx : number): string {
+        return this._lastResults[this._groupByName2][idx];
     }
 
     public getLats(): string[] {

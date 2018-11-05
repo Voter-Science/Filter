@@ -40,7 +40,7 @@ interface IGrouper
 class PercentageGrouper implements IGrouper 
 {
     private static _result : string[] = [
-        "0-20%", "20-40%", "40-60%", "60-80%", "80-100%"];
+        "(Blank)", "0-20%", "20-40%", "40-60%", "60-80%", "80-100%"];
 
     public getGroupByValues() : string []
     {
@@ -49,18 +49,22 @@ class PercentageGrouper implements IGrouper
 
     // undefined if not mapped
     public getGroupByIndex(val : string) : number
-    {
+    {        
         var x = parseFloat(val);
+        if (isNaN(x)) {
+            return 0;
+        }
         if (val[val.length-1] != '%') {
             x  = x * 100.0;
         }
 
-        var max = PercentageGrouper._result.length;
+        var max = PercentageGrouper._result.length - 1; // ignore (blank)
         x /= (100 / max);
+        x = Math.floor(x)
         if (x < 0) { x = 0; }
         if (x >= max) { x = max-1 };
         
-        return x;
+        return x + 1; // adjust for (blank)
     }
     public getColors() : string[]{
         return null;
@@ -99,11 +103,13 @@ class GenericGrouper implements IGrouper
     public _colors : string[] ;
 
     // // non-blank, unique values, alphabetically sorted 
-    public constructor(values: Array<string>) 
+    public constructor(values: Array<string>, includeBlank : boolean) 
     {
         this._colors = null;
-        this._possibleValues = values;
+        values = values.slice(0);
         var valueIdx : any = { }; // value --> idx into counts
+        
+        // Build up index 
         for(var i  =0; i < values.length; i++) {
             var x = values[i];
             valueIdx[x] = i;            
@@ -111,7 +117,14 @@ class GenericGrouper implements IGrouper
                 valueIdx[""] = i; // map empty to 0
             }
         }
+
+        if (includeBlank) {
+            valueIdx[""] = values.length;
+            values.push("(blank)");             
+        }
+
         this._valueIdx = valueIdx;        
+        this._possibleValues = values;
     }
     public getGroupByValues() : string []
     {
@@ -269,7 +282,7 @@ export class ColumnStats {
             this._grouper = new PercentageGrouper();
         } else if (columnName == "Party") 
         {
-            var x = new GenericGrouper(["0", "1", "2", "3", "4", "5"]);
+            var x = new GenericGrouper(["0", "1", "2", "3", "4", "5"], false);
             x._colors = [
                 "#BBBBBB",  // 0
                 "#FF0000", // 1 = red 
@@ -283,7 +296,7 @@ export class ColumnStats {
             this._grouper = new TagGrouper();
 
         } else if (this._possibleValues.length < 20) {
-            this._grouper = new GenericGrouper(this._possibleValues);
+            this._grouper = new GenericGrouper(this._possibleValues, this._numBlanks > 0);
         }
     }
 

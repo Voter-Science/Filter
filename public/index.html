@@ -401,13 +401,13 @@
                         <li>
                             <a href="#act4" data-toggle="tab">Charts</a>
                         </li>
+                        <li>
+                            <a href="#act5" data-toggle="tab">Crosstabs</a>
+                        </li>
                     </ul>
                     <div class="tab-content">
-
                         <div id="act2" class="tab-pane fade">
-
                             <b>Save the results </b>
-
                             <table>
                                 <tr>
                                     <td>
@@ -497,6 +497,31 @@
                                 </p>
                                 </div>
                             
+                        </div>
+                        <div id="act5" class="tab-pane fade">
+                            <h4>Show a breakdown of the above results grouped by two fields:</h4>
+                            
+                            <table>
+                                <tr>
+                                    <td>Rows:</td>
+                                    <td>
+                                        <select class="form-control" id="groupby1">
+                                            <option>(none)</option>
+                                        </select> 
+                                    </td>
+                                </tr>
+                                <tr>                            
+                                    <td>Columns:</td>
+                                    <td>
+                                        <select class="form-control" id="groupby2">
+                                                <option>(none)</option>
+                                        </select>                                 
+                                    </td>
+                                </tr>
+                            </table>
+                            <button id="btnCrossTabs" onclick="_plugin.onCreateCrossTab()" class="btn btn-default">Show Cross tabs</button>
+
+                            <div id="mycrosstabs"></div>                                                       
                         </div>
                     </div>
                 </div>
