@@ -1655,6 +1655,10 @@ function convertRuleToExpressionString(asRule: IQueryRule): string {
 // Given a JQueryBuilder object, convert it to a TRC string.
 // The query object is a potentially recursive tree.
 function convertToExpressionString(query: IQueryCondition | IQueryRule): string {
+    if (query == null)
+    {
+        return; // Empty query. USeful if we don't have a where filter and just want cross tabs. 
+    }
     try {
         var asQuery = (<IQueryCondition>query);
         if (asQuery.condition) {

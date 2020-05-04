@@ -295,7 +295,7 @@ export class ColumnStats {
         } else if (this._isTagType) {
             this._grouper = new TagGrouper();
 
-        } else if (this._possibleValues.length < 20) {
+        } else if (this._possibleValues.length < 50 || columnName == "PrecinctName") {
             this._grouper = new GenericGrouper(this._possibleValues, this._numBlanks > 0);
         }
     }
